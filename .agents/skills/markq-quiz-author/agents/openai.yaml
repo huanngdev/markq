@@ -1,0 +1,5 @@
+interface:
+  display_name: "MarkQ Quiz Author"
+  short_description: "Generate valid Markdown quizzes for MarkQ"
+  brand_color: "#17875F"
+  default_prompt: "Use $markq-quiz-author to create a validated MarkQ quiz from my questions."
