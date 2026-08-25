@@ -129,8 +129,14 @@ def validate(data: Any) -> dict[str, Any]:
         if unknown:
             raise ValueError(f"answer {unknown} does not exist in question {question_id}")
         points = require_number(question.get("points", 1), f"questions[{index}].points", minimum=0.000001)
+        topic_id = question.get("topicId")
+        if topic_id is not None:
+            topic_id = require_text(topic_id, f"questions[{index}].topicId")
+            if not KEBAB_CASE.fullmatch(topic_id):
+                raise ValueError(f"questions[{index}].topicId must use kebab-case")
         normalized_questions.append({
             "id": question_id,
+            "topicId": topic_id,
             "prompt": require_text(question.get("prompt"), f"questions[{index}].prompt"),
             "options": normalized_options,
             "answers": answers,
@@ -180,6 +186,8 @@ def render(data: dict[str, Any]) -> str:
             lines.append(question["answers"][0])
         else:
             lines.extend(f"- {answer}" for answer in question["answers"])
+        if question["topicId"] is not None:
+            lines.extend(["", "### Topic", "", question["topicId"]])
         lines.extend(["", "### Points", "", str(question["points"]), "", "### Explanation", "", question["explanation"]])
     return "\n".join(lines).rstrip() + "\n"
 

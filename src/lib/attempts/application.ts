@@ -86,6 +86,7 @@ function toReview(attempt: Attempt): AttemptReview {
     answers: attempt.answers.map((answer) => ({
       id: answer.id,
       questionId: answer.questionId,
+      topicId: answer.topicId,
       questionOrder: answer.questionOrder,
       prompt: answer.prompt,
       options: answer.options,
@@ -142,6 +143,7 @@ function createDraftAttempt(
     answers: orderedQuestions.map((question, questionOrder) => ({
       id: dependencies.createId(),
       questionId: question.id,
+      topicId: question.topicId,
       questionOrder,
       prompt: question.prompt,
       options: quiz.settings.shuffleOptions
@@ -176,6 +178,7 @@ function quizFromAttempt(attempt: Attempt): Quiz {
     settings: attempt.settings,
     questions: attempt.answers.map((answer): QuizQuestion => ({
       id: answer.questionId,
+      topicId: answer.topicId,
       prompt: answer.prompt,
       options: answer.options,
       correctOptions: answer.correctOptions,

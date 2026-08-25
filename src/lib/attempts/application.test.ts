@@ -131,6 +131,7 @@ const quiz: Quiz = {
   questions: [
     {
       id: "q1",
+      topicId: "example-basics",
       prompt: "First",
       options: [{ id: "A", content: "A" }, { id: "B", content: "B" }],
       correctOptions: ["A"],
@@ -140,6 +141,7 @@ const quiz: Quiz = {
     },
     {
       id: "q2",
+      topicId: null,
       prompt: "Second",
       options: [{ id: "A", content: "A" }, { id: "B", content: "B" }],
       correctOptions: ["A", "B"],
@@ -165,7 +167,7 @@ function harness(start = "2026-01-01T00:00:00.000Z") {
 
 describe("attempt application", () => {
   it("starts once, persists shuffled order, and resumes the same attempt", () => {
-    const { dependencies } = harness();
+    const { dependencies, repository } = harness();
     const shuffledQuiz = {
       ...quiz,
       settings: { ...quiz.settings, shuffleQuestions: true, shuffleOptions: true },
@@ -175,6 +177,8 @@ describe("attempt application", () => {
 
     expect(resumed.id).toBe(started.id);
     expect(started.answers.map((answer) => answer.questionId)).toEqual(["q2", "q1"]);
+    expect(repository.attempts.get(started.id)?.answers.map((answer) => answer.topicId))
+      .toEqual([null, "example-basics"]);
     expect(started.answers[0].options.map((option) => option.id)).toEqual(["B", "A"]);
   });
 

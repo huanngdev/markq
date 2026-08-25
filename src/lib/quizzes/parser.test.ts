@@ -46,6 +46,7 @@ describe("parseQuizMarkdown", () => {
     expect(quiz.questions).toHaveLength(1);
     expect(quiz.questions[0]).toMatchObject({
       id: "q1",
+      topicId: null,
       correctOptions: ["B"],
       selectionMode: "single",
       points: 1,
@@ -100,7 +101,7 @@ describe("parseQuizMarkdown", () => {
     const versionedQuiz = validQuiz
       .replace("id: sample-quiz", `schemaVersion: 2\nid: sample-quiz`)
       .replace("published: true", `published: true\nvisibility: unlisted\nsettings:\n  timeLimitMinutes: 30\n  shuffleQuestions: true\n  shuffleOptions: true\n  navigationMode: sequential\n  allowUnanswered: false\n  reviewMode: never\n  passingScore: 70\n  expireBehavior: mark-expired\n  scoringMode: partial\n  incorrectPenalty: 0.25\n  attemptsAllowed: 2`)
-      .replace("\nB\n\n### Explanation", "\n- A\n- B\n\n### Points\n\n2.5\n\n### Explanation");
+      .replace("\nB\n\n### Explanation", "\n- A\n- B\n\n### Topic\n\njavascript-types\n\n### Points\n\n2.5\n\n### Explanation");
 
     const quiz = parseQuizMarkdown(versionedQuiz);
 
@@ -121,6 +122,7 @@ describe("parseQuizMarkdown", () => {
     });
     expect(quiz.questions[0]).toMatchObject({
       correctOptions: ["A", "B"],
+      topicId: "javascript-types",
       selectionMode: "multiple",
       points: 2.5,
     });
@@ -137,6 +139,11 @@ describe("parseQuizMarkdown", () => {
   it("rejects non-positive question points", () => {
     const invalid = validQuiz.replace("\n### Explanation", "\n### Points\n\n0\n\n### Explanation");
     expect(() => parseQuizMarkdown(invalid)).toThrow(/positive number/);
+  });
+
+  it("rejects malformed topic IDs", () => {
+    const invalid = validQuiz.replace("\n### Explanation", "\n### Topic\n\nNot a topic\n\n### Explanation");
+    expect(() => parseQuizMarkdown(invalid)).toThrow(/topic ID must use kebab-case/);
   });
 
   it("rewrites relative images without touching code blocks or remote images", () => {

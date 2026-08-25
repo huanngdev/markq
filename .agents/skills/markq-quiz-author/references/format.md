@@ -57,6 +57,10 @@ What does `typeof null` return?
 
 B
 
+### Topic
+
+javascript-types
+
 ### Points
 
 1
@@ -95,11 +99,11 @@ Select every prime number.
 2 and 3 each have exactly two positive divisors; 4 is composite.
 ```
 
-Question IDs are unique kebab-case. Option IDs contain ASCII letters or digits and normalize to uppercase. Each option stays on one source line. `Points` is optional, must be positive, and defaults to 1.
+Question IDs are unique kebab-case. Option IDs contain ASCII letters or digits and normalize to uppercase. Each option stays on one source line. `Topic` is optional and contains one kebab-case ID matching a topic in `content/knowledge`; it lets Analytics group mistakes and display the associated lesson. `Points` is optional, must be positive, and defaults to 1.
 
 ## Generator JSON
 
-The JSON mirrors frontmatter. Each question has `id`, `prompt`, `options`, `answer`, `points`, and `explanation`. `answer` is either one string or an array:
+The JSON mirrors frontmatter. Each question has `id`, `prompt`, `options`, `answer`, optional `topicId`, `points`, and `explanation`. `answer` is either one string or an array:
 
 ```json
 {
@@ -118,6 +122,7 @@ The JSON mirrors frontmatter. Each question has `id`, `prompt`, `options`, `answ
         { "id": "C", "content": "4" }
       ],
       "answer": ["A", "B"],
+      "topicId": "math-prime-numbers",
       "points": 2,
       "explanation": "2 and 3 are prime; 4 is composite."
     }

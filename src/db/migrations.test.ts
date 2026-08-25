@@ -46,6 +46,7 @@ describe("SQLite migrations", () => {
     `);
 
     applyMigration(database, "0001_late_beast.sql");
+    applyMigration(database, "0002_pretty_bastion.sql");
 
     const attempt = database.query<{
       status: string;
@@ -56,7 +57,8 @@ describe("SQLite migrations", () => {
       selected_options: string;
       correct_options: string;
       selection_mode: string;
-    }, []>("SELECT selected_options, correct_options, selection_mode FROM attempt_answers WHERE id = 'answer-1'").get();
+      topic_id: string;
+    }, []>("SELECT selected_options, correct_options, selection_mode, topic_id FROM attempt_answers WHERE id = 'answer-1'").get();
     expect(attempt).not.toBeNull();
     expect(answer).not.toBeNull();
     if (!attempt || !answer) throw new Error("Migrated fixtures were not found");
@@ -66,6 +68,7 @@ describe("SQLite migrations", () => {
     expect(answer.selected_options).toBe('["A"]');
     expect(answer.correct_options).toBe('["A"]');
     expect(answer.selection_mode).toBe("single");
+    expect(answer.topic_id).toBe("");
     database.close();
   });
 });

@@ -25,6 +25,7 @@ Produce a `.md` quiz that MarkQ accepts without manual cleanup.
 
 - New quizzes use `schemaVersion: 2`; keep stable, unique kebab-case quiz and question IDs.
 - Every question has `Question`, `Options`, `Answer`, and `Explanation`; `Points` is optional and defaults to `1`.
+- `Topic` is an optional kebab-case knowledge ID. Use it when Analytics should group mistakes and show a matching article from `content/knowledge`.
 - Create at least two unique options, each on one source line as `- [ ] A. Content`.
 - One correct answer is a bare ID. Multiple correct answers use one list item per ID. Every answer must exist in `Options` and must be unique.
 - Never mark the option list with `[x]`; truth belongs only in `Answer`.

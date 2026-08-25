@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 
 import { QuizCatalog } from "@/components/quiz-catalog";
+import { AppNav } from "@/components/app-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getOwnedQuizAttemptStats } from "@/lib/attempts/server-attempt-service";
 import { getSessionUserId } from "@/lib/auth/session";
@@ -30,6 +31,7 @@ export default async function HomePage({
         </div>
         <ThemeToggle />
       </div>
+      <div className="mb-6"><AppNav active="quizzes" /></div>
       <QuizCatalog
         quizzes={quizzes}
         stats={stats}

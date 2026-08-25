@@ -11,6 +11,7 @@ export type AttemptStatus = "in_progress" | "submitted" | "expired";
 export type AttemptAnswer = {
   id: string;
   questionId: string;
+  topicId: string | null;
   questionOrder: number;
   prompt: string;
   options: QuizOption[];

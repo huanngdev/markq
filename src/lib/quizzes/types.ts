@@ -43,6 +43,7 @@ export type QuizOption = {
 
 export type QuizQuestion = {
   id: string;
+  topicId: string | null;
   prompt: string;
   options: QuizOption[];
   correctOptions: string[];
@@ -64,7 +65,7 @@ export type Quiz = {
   sourceFile: string;
 };
 
-export type PublicQuizQuestion = Omit<QuizQuestion, "correctOptions" | "explanation">;
+export type PublicQuizQuestion = Omit<QuizQuestion, "correctOptions" | "explanation" | "topicId">;
 
 export type PublicQuiz = Omit<Quiz, "questions" | "sourceFile" | "published"> & {
   questions: PublicQuizQuestion[];

@@ -28,6 +28,7 @@ MarkQ is an open-source **Markdown quiz generator** built with Next.js, shadcn/u
 - One-question-at-a-time workspace with fast question navigation.
 - Server-authoritative deadlines, grading, expiration, ownership, and Zod validation.
 - Correct, incorrect, and unanswered result breakdowns.
+- Analytics by subject and topic, including weak-topic ranking, missed-question examples, and linked review lessons.
 - Attempt history with quiz snapshots, so old reviews remain accurate after a quiz changes.
 - Dark mode based on system preference with a manual toggle.
 - Autosave/resume, per-question points, flags, exact or partial scoring, and an optional protected `/manage` editor.
@@ -91,6 +92,10 @@ settings:
 
 ## typeof-null
 
+### Topic
+
+javascript-types
+
 ### Question
 
 What does `typeof null` return in JavaScript?
@@ -124,6 +129,7 @@ The repository includes a working [example quiz](content/quizzes/example-quiz.md
 - Quiz and question IDs must be stable, unique, and kebab-case.
 - New quizzes use `schemaVersion: 2`; legacy files without it remain supported.
 - Every question must contain `Question`, `Options`, `Answer`, and `Explanation`; optional `Points` defaults to 1.
+- Add an optional kebab-case `Topic` to group results in Analytics and connect the question to a knowledge article.
 - Each option uses one line: `- [ ] A. Option content`.
 - A single answer is a bare option ID. Multiple answers use one list item per correct ID.
 - Questions, explanations, and option content support Markdown.
@@ -143,6 +149,34 @@ Private source material and quiz-generation instructions belong in
 `local/quiz-authoring/<project>/`. The entire `local/` directory is ignored and
 is never required by the app. Generated quiz files still go in
 `content/quizzes/`, where they remain private unless explicitly allowlisted.
+
+## Analytics and knowledge articles
+
+The **Analytics** tab summarizes completed attempts for the current guest session. It separates English and IQ results, ranks topics by incorrect answers and accuracy, and shows the questions most often missed. Unanswered questions are tracked separately from incorrect answers.
+
+To add review material, create a Markdown file in `content/knowledge/`:
+
+```md
+---
+subject: english
+title: English knowledge base
+description: Grammar and vocabulary lessons.
+---
+
+## english-second-conditional | Second conditional
+
+Use the second conditional for unreal or unlikely present and future situations.
+
+**Form:** `If + past simple, would + base verb`.
+
+### Example
+
+If I had more time, I would study another language.
+```
+
+The text before `|` must exactly match a question's `Topic`; the text after it is the display title. Article bodies support Markdown and can include formulas, reasoning, hints, examples, and common mistakes. Run `bun run quiz:validate` to catch missing or duplicate topic references.
+
+Like private quizzes, `content/knowledge/*.md` is ignored by Git by default. Add an explicit allow rule only when you intend to publish a knowledge file.
 
 ## Keyboard shortcuts
 

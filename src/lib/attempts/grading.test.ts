@@ -17,6 +17,7 @@ const quiz: Quiz = {
   questions: [
     {
       id: "q1",
+      topicId: null,
       prompt: "One",
       options: [{ id: "A", content: "A" }, { id: "B", content: "B" }],
       correctOptions: ["A"],
@@ -26,6 +27,7 @@ const quiz: Quiz = {
     },
     {
       id: "q2",
+      topicId: null,
       prompt: "Two",
       options: [{ id: "A", content: "A" }, { id: "B", content: "B" }],
       correctOptions: ["B"],
@@ -35,6 +37,7 @@ const quiz: Quiz = {
     },
     {
       id: "q3",
+      topicId: null,
       prompt: "Three",
       options: [
         { id: "A", content: "A" },

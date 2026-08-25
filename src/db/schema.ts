@@ -49,6 +49,7 @@ export const attemptAnswers = sqliteTable(
       .notNull()
       .references(() => attempts.id, { onDelete: "cascade" }),
     questionId: text("question_id").notNull(),
+    topicId: text("topic_id").notNull().default(""),
     questionOrder: integer("question_order").notNull(),
     questionSnapshot: text("question_snapshot").notNull(),
     optionsSnapshot: text("options_snapshot").notNull(),

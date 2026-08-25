@@ -4,6 +4,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 
 import { Badge } from "@/components/ui/badge";
+import { AppNav } from "@/components/app-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -58,6 +59,7 @@ export default async function AttemptsPage() {
         </div>
         <ThemeToggle />
       </div>
+      <div className="mt-5"><AppNav active="history" /></div>
 
       {attempts.length > 0 ? (
         <div className="mt-8 space-y-3">

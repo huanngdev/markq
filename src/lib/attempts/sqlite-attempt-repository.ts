@@ -42,6 +42,7 @@ function mapAnswer(row: AttemptAnswerRow): AttemptAnswer {
   return {
     id: row.id,
     questionId: row.questionId,
+    topicId: row.topicId || null,
     questionOrder: row.questionOrder,
     prompt: row.questionSnapshot,
     options: parseJson(row.optionsSnapshot, optionArraySchema, "options snapshot"),
@@ -166,6 +167,7 @@ export class SqliteAttemptRepository implements AttemptRepository {
         id: answer.id,
         attemptId: attempt.id,
         questionId: answer.questionId,
+        topicId: answer.topicId ?? "",
         questionOrder: answer.questionOrder,
         questionSnapshot: answer.prompt,
         optionsSnapshot: JSON.stringify(answer.options),

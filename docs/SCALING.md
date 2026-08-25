@@ -22,6 +22,7 @@ Markdown v1/v2
 - HTTP-only guest ownership so attempt history is isolated per browser session.
 - Public, unlisted, and private visibility.
 - Protected Markdown content editor, atomic writes, health reporting, and migration coverage.
+- Topic snapshots, per-subject analytics, weak-topic ranking, and Markdown knowledge articles linked to quiz questions.
 
 ## Extension points
 
@@ -37,6 +38,10 @@ Implement `AttemptRepository` from `src/lib/attempts/repository-port.ts`, then r
 
 The filesystem repository currently reparses Markdown per request. For hundreds of quizzes, add a build-time content index keyed by file hash. Keep answer keys in the server-only artifact and generate public summaries separately.
 
+### Analytics and knowledge content
+
+Question topics are copied into attempt snapshots, so historical analytics remain stable after a quiz file changes. Knowledge articles live in `content/knowledge/` and are joined by their kebab-case topic ID. For larger datasets, move aggregation behind the analytics repository boundary and precompute per-user topic counters; keep knowledge Markdown as independently deployable content.
+
 ### Horizontal deployment
 
 SQLite requires a persistent volume and is best for one application writer. Multiple instances should use a shared transactional database or a single-writer SQLite service. Session identity is already stateless in an HTTP-only cookie, so only the repository adapter changes.
@@ -50,5 +55,6 @@ Add named authentication, audit events, rate limits, server-side proctoring poli
 - Active workspace DTOs never expose correct answers or explanations.
 - Deadlines, grading, attempt limits, ownership, and review access remain server-authoritative.
 - Submission stays idempotent and snapshots remain reviewable after source edits.
+- Analytics only includes submitted or expired attempts and never treats an unanswered question as an incorrect answer.
 - UI components do not fetch or own workflow state; hooks coordinate client behavior.
 - Every new setting has a normalized default, parser validation, snapshot representation, domain behavior, UI state, and test.

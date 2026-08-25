@@ -39,7 +39,7 @@ const frontmatterSchema = z.object({
 });
 
 const requiredSectionNames = ["question", "options", "answer", "explanation"] as const;
-type SectionName = (typeof requiredSectionNames)[number] | "points";
+type SectionName = (typeof requiredSectionNames)[number] | "points" | "topic";
 const sectionAliases: Record<string, SectionName> = {
   question: "question",
   "câu hỏi": "question",
@@ -51,6 +51,8 @@ const sectionAliases: Record<string, SectionName> = {
   "lời giải": "explanation",
   points: "points",
   "điểm": "points",
+  topic: "topic",
+  "chủ đề": "topic",
 };
 
 type MarkdownNode = {
@@ -216,6 +218,16 @@ function parsePoints(raw: string | undefined, sourceFile: string, questionId: st
   return value;
 }
 
+function parseTopicId(raw: string | undefined, sourceFile: string, questionId: string) {
+  if (raw === undefined) return null;
+
+  const topicId = raw.trim();
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(topicId)) {
+    throw new QuizFormatError(sourceFile, "topic ID must use kebab-case", questionId);
+  }
+  return topicId;
+}
+
 function parseOptions(raw: string, sourceFile: string, questionId: string): QuizOption[] {
   const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
   const optionPattern = /^\s*-\s*\[(?: |x|X)?\]\s+([A-Za-z0-9]+)\.\s+(.+?)\s*$/;
@@ -269,6 +281,7 @@ function parseQuestion(
 
   return {
     id: questionId,
+    topicId: parseTopicId(sections.get("topic"), sourceFile, questionId),
     prompt: rewriteRelativeImageUrls(sections.get("question")!, sourceFile),
     options,
     correctOptions,
