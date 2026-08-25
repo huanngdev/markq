@@ -4,11 +4,15 @@ import Link from "next/link";
 import { connection } from "next/server";
 
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { getAttempts } from "@/lib/attempts/repository";
 
-export const metadata: Metadata = { title: "Attempt history" };
+export const metadata: Metadata = {
+  title: "Attempt history",
+  robots: { index: false, follow: false },
+};
 
 function formatSubmittedAt(value: string) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -20,9 +24,14 @@ export default async function AttemptsPage() {
 
   return (
     <main className="mx-auto min-h-svh w-full max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-      <p className="text-sm font-medium text-muted-foreground">Saved results</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-balance">Attempt History</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Each submission keeps its own quiz snapshot for accurate review.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">Saved results</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-balance">Attempt History</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Each submission keeps its own quiz snapshot for accurate review.</p>
+        </div>
+        <ThemeToggle />
+      </div>
 
       {attempts.length > 0 ? (
         <div className="mt-8 space-y-3">

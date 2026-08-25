@@ -3,9 +3,10 @@
 import { ChevronLeft, ChevronRight, House, List, LoaderCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 
 import { Markdown } from "@/components/markdown";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,8 +17,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -138,25 +140,76 @@ export function QuizWorkspace({ quiz }: { quiz: PublicQuiz }) {
     else void saveAttempt();
   }
 
+  const handleQuizShortcut = useEffectEvent((event: KeyboardEvent) => {
+    const target = event.target;
+    const isTyping = target instanceof HTMLElement && (
+      target.isContentEditable ||
+      target.matches("input:not([type='radio']), textarea, select")
+    );
+    if (event.defaultPrevented || isTyping || pendingAction !== null || submitting) return;
+
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+      event.preventDefault();
+      submitQuiz();
+      return;
+    }
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+    if (event.key === "ArrowLeft" && currentIndex > 0) {
+      event.preventDefault();
+      goToQuestion(currentIndex - 1);
+      return;
+    }
+    if (event.key === "ArrowRight" && currentIndex < quiz.questions.length - 1) {
+      event.preventDefault();
+      goToQuestion(currentIndex + 1);
+      return;
+    }
+
+    const key = event.key.toUpperCase();
+    const numericIndex = /^[1-4]$/.test(key) ? Number(key) - 1 : -1;
+    const letterIndex = /^[A-D]$/.test(key) ? key.charCodeAt(0) - 65 : -1;
+    const option = currentQuestion.options.find((item) => item.id === key)
+      ?? currentQuestion.options[numericIndex >= 0 ? numericIndex : letterIndex];
+    if (!option) return;
+
+    event.preventDefault();
+    setAnswers((current) => ({ ...current, [currentQuestion.id]: option.id }));
+  });
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleQuizShortcut);
+    return () => window.removeEventListener("keydown", handleQuizShortcut);
+  }, []);
+
   return (
     <main className="h-svh max-h-screen overflow-hidden bg-muted/30 p-3 sm:p-4">
       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1520px] flex-col gap-3">
         <Card size="sm" className="shrink-0 gap-0 py-0">
           <CardHeader className="flex min-h-16 grid-cols-none flex-row items-center justify-between gap-3 py-3">
             <div className="flex min-w-0 items-center gap-3">
-              <Link
-                href="/"
-                aria-label="Home"
-                title="Home"
-                className={buttonVariants({ variant: "outline", size: "icon-lg" })}
-                onNavigate={(event) => {
-                  if (!hasAnswers) return;
-                  event.preventDefault();
-                  setPendingAction({ type: "home" });
-                }}
-              >
-                <House aria-hidden="true" />
-              </Link>
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon-lg"
+                  nativeButton={false}
+                  render={(
+                    <Link
+                      href="/"
+                      aria-label="Home"
+                      title="Home"
+                      onNavigate={(event) => {
+                        if (!hasAnswers) return;
+                        event.preventDefault();
+                        setPendingAction({ type: "home" });
+                      }}
+                    />
+                  )}
+                >
+                  <House aria-hidden="true" />
+                </Button>
+                <ThemeToggle />
+              </div>
               <div className="min-w-0">
                 <p className="text-xs font-medium text-muted-foreground">Quiz</p>
                 <CardTitle className="truncate text-lg"><h1>{quiz.title}</h1></CardTitle>
@@ -180,15 +233,25 @@ export function QuizWorkspace({ quiz }: { quiz: PublicQuiz }) {
             <CardContent className="flex h-full min-h-0 flex-col p-4 sm:p-5">
               <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2 text-sm">
                 <span className="font-medium tabular-nums">Question {currentIndex + 1} of {quiz.questions.length}</span>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <span className="hidden items-center gap-1 text-xs text-muted-foreground xl:flex">
+                    Answer <Kbd>A–D</Kbd><Kbd>1–4</Kbd>
+                  </span>
                   <Button variant="outline" size="sm" disabled={currentIndex === 0 || submitting} onClick={() => goToQuestion(currentIndex - 1)}>
-                    <ChevronLeft data-icon="inline-start" aria-hidden="true" /> Previous
+                    <ChevronLeft data-icon="inline-start" aria-hidden="true" /> Previous <Kbd className="hidden lg:inline-flex">←</Kbd>
                   </Button>
                   <Button variant="outline" size="sm" disabled={currentIndex === quiz.questions.length - 1 || submitting} onClick={() => goToQuestion(currentIndex + 1)}>
-                    Next <ChevronRight data-icon="inline-end" aria-hidden="true" />
+                    Next <Kbd className="hidden lg:inline-flex">→</Kbd><ChevronRight data-icon="inline-end" aria-hidden="true" />
+                  </Button>
+                  <Button size="sm" disabled={submitting} onClick={submitQuiz}>
+                    {submitting ? <LoaderCircle className="animate-spin" data-icon="inline-start" aria-hidden="true" /> : null}
+                    <span aria-live="polite">{submitting ? "Grading…" : "Submit Quiz"}</span>
+                    <Kbd className="hidden bg-primary-foreground/15 text-primary-foreground lg:inline-flex">⌘↵</Kbd>
                   </Button>
                 </div>
               </div>
+
+              {error ? <p role="alert" className="mb-3 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p> : null}
 
               <section className="shrink-0" aria-labelledby="question-heading">
                 <h2 id="question-heading" className="sr-only">Question {currentIndex + 1}</h2>
@@ -220,15 +283,6 @@ export function QuizWorkspace({ quiz }: { quiz: PublicQuiz }) {
                 })}
               </RadioGroup>
 
-              <div className="mt-auto shrink-0 border-t pt-3">
-                {error ? <p role="alert" className="mb-3 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p> : null}
-                <div className="flex justify-end">
-                  <Button size="lg" disabled={submitting} onClick={submitQuiz}>
-                    {submitting ? <LoaderCircle className="animate-spin" data-icon="inline-start" aria-hidden="true" /> : null}
-                    <span aria-live="polite">{submitting ? "Grading…" : "Submit Quiz"}</span>
-                  </Button>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>
