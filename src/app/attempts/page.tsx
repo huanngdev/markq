@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { getAttempts } from "@/lib/attempts/repository";
+import { listOwnedAttempts } from "@/lib/attempts/server-attempt-service";
+import { getSessionUserId } from "@/lib/auth/session";
+import type { AttemptSummary } from "@/lib/attempts/types";
 
 export const metadata: Metadata = {
   title: "Attempt history",
@@ -18,9 +20,33 @@ function formatSubmittedAt(value: string) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
+function AttemptHistoryCard({ attempt }: { attempt: AttemptSummary }) {
+  const content = (
+    <Card className="transition-shadow group-hover:shadow-md">
+      <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center">
+        <div className="grid size-14 shrink-0 place-items-center rounded-lg bg-primary text-lg font-semibold text-primary-foreground tabular-nums">{attempt.scorePercent}%</div>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-base font-medium">{attempt.quizTitle}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{formatSubmittedAt(attempt.submittedAt ?? attempt.updatedAt)}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <Badge variant="secondary">{attempt.correctCount} correct</Badge>
+          <Badge variant="destructive">{attempt.incorrectCount} incorrect</Badge>
+          {attempt.unansweredCount > 0 ? <Badge variant="outline">{attempt.unansweredCount} unanswered</Badge> : null}
+          {attempt.reviewMode === "after-submit" ? <ArrowRight className="ml-2 text-muted-foreground transition-transform group-hover:translate-x-1" size={18} aria-hidden="true" /> : <Badge variant="outline">Review disabled</Badge>}
+        </div>
+      </CardContent>
+    </Card>
+  );
+  return attempt.reviewMode === "after-submit" ? (
+    <Link href={`/attempts/${attempt.id}`} className="group block rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">{content}</Link>
+  ) : <div>{content}</div>;
+}
+
 export default async function AttemptsPage() {
   await connection();
-  const attempts = getAttempts();
+  const userId = await getSessionUserId();
+  const attempts = userId ? listOwnedAttempts(userId) : [];
 
   return (
     <main className="mx-auto min-h-svh w-full max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
@@ -35,25 +61,7 @@ export default async function AttemptsPage() {
 
       {attempts.length > 0 ? (
         <div className="mt-8 space-y-3">
-          {attempts.map((attempt) => (
-            <Link key={attempt.id} href={`/attempts/${attempt.id}`} className="group block rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-              <Card className="transition-shadow group-hover:shadow-md">
-                <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center">
-                  <div className="grid size-14 shrink-0 place-items-center rounded-lg bg-primary text-lg font-semibold text-primary-foreground tabular-nums">{attempt.scorePercent}%</div>
-                  <div className="min-w-0 flex-1">
-                    <h2 className="truncate text-base font-medium">{attempt.quizTitle}</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">{formatSubmittedAt(attempt.submittedAt)}</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                    <Badge variant="secondary">{attempt.correctCount} correct</Badge>
-                    <Badge variant="destructive">{attempt.incorrectCount} incorrect</Badge>
-                    {attempt.unansweredCount > 0 ? <Badge variant="outline">{attempt.unansweredCount} unanswered</Badge> : null}
-                    <ArrowRight className="ml-2 text-muted-foreground transition-transform group-hover:translate-x-1" size={18} aria-hidden="true" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+          {attempts.map((attempt) => <AttemptHistoryCard key={attempt.id} attempt={attempt} />)}
         </div>
       ) : (
         <Empty className="mt-8 min-h-64 border">

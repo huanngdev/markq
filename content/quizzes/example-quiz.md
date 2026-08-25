@@ -1,4 +1,5 @@
 ---
+schemaVersion: 2
 id: web-fundamentals
 title: Web Fundamentals
 description: A short example quiz covering HTML, CSS, JavaScript, HTTP, and accessibility.
@@ -7,6 +8,19 @@ tags:
   - beginner
   - example
 published: true
+visibility: public
+settings:
+  timeLimitMinutes: null
+  shuffleQuestions: false
+  shuffleOptions: false
+  navigationMode: free
+  allowUnanswered: true
+  reviewMode: after-submit
+  passingScore: 70
+  expireBehavior: auto-submit
+  scoringMode: exact
+  incorrectPenalty: 0
+  attemptsAllowed: null
 ---
 
 # Web Fundamentals
@@ -120,19 +134,24 @@ The `alt` attribute supplies the image's text alternative. Assistive technologie
 
 ### Question
 
-Which concept lets a layout adapt to different screen sizes?
+Which techniques are commonly used in responsive web design? Select all that apply.
 
 ### Options
 
-- [ ] A. Responsive design
+- [ ] A. Fluid layouts
 - [ ] B. Source maps
 - [ ] C. Tree shaking
-- [ ] D. Server rendering
+- [ ] D. Media queries
 
 ### Answer
 
-A
+- A
+- D
+
+### Points
+
+2
 
 ### Explanation
 
-Responsive design combines flexible layouts, media queries, and adaptable media so an interface works across viewport sizes.
+Fluid layouts and media queries help interfaces adapt across viewport sizes. Source maps and tree shaking are development and build concerns.

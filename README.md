@@ -12,23 +12,25 @@ MarkQ is an open-source **Markdown quiz generator** built with Next.js, shadcn/u
 
 ## Why MarkQ?
 
-- **Markdown in, quiz out** — no admin panel, proprietary editor, or content database.
+- **Markdown in, quiz out** — edit files directly or use the optional protected Markdown editor.
 - **Obsidian-friendly** — quiz files remain readable and editable as ordinary `.md` notes.
 - **Answers stay server-side** — correct answers and explanations are not included in the browser's quiz payload.
 - **Built-in review** — show the selected answer, correct answer, and full Markdown explanation after submission.
-- **Persistent history** — SQLite stores scores and immutable snapshots of completed attempts.
+- **Persistent progress** — SQLite stores autosaved in-progress work, scores, flags, shuffled order, and immutable review snapshots.
 - **Self-hosted and private** — your content and results stay on infrastructure you control.
 - **Responsive and accessible** — keyboard shortcuts, light/dark mode, and layouts for desktop and mobile.
 
 ## Features
 
-- Multiple single-answer quizzes loaded from `content/quizzes/*.md`.
+- Single-answer and multiple-answer quizzes loaded from `content/quizzes/*.md`.
+- Versioned settings for time limits, shuffling, navigation, unanswered questions, review policy, scoring, passing score, penalties, and attempt limits.
 - Markdown questions and explanations with GFM, code blocks, lists, and local images.
 - One-question-at-a-time workspace with fast question navigation.
-- Server-side grading and Zod validation.
+- Server-authoritative deadlines, grading, expiration, ownership, and Zod validation.
 - Correct, incorrect, and unanswered result breakdowns.
 - Attempt history with quiz snapshots, so old reviews remain accurate after a quiz changes.
 - Dark mode based on system preference with a manual toggle.
+- Autosave/resume, per-question points, flags, exact or partial scoring, and an optional protected `/manage` editor.
 - CLI validation plus a bundled Codex skill for authoring valid quizzes.
 - SEO metadata, Open Graph/Twitter images, `robots.txt`, and a generated sitemap.
 
@@ -62,6 +64,7 @@ Create a file such as `content/quizzes/javascript-basics.md`:
 
 ```md
 ---
+schemaVersion: 2
 id: javascript-basics
 title: JavaScript Basics
 description: Test your JavaScript fundamentals.
@@ -69,6 +72,19 @@ tags:
   - javascript
   - beginner
 published: true
+visibility: public
+settings:
+  timeLimitMinutes: 20
+  shuffleQuestions: true
+  shuffleOptions: true
+  navigationMode: free
+  allowUnanswered: true
+  reviewMode: after-submit
+  passingScore: 70
+  expireBehavior: auto-submit
+  scoringMode: exact
+  incorrectPenalty: 0
+  attemptsAllowed: null
 ---
 
 # JavaScript Basics
@@ -106,11 +122,12 @@ The repository includes a working [example quiz](content/quizzes/example-quiz.md
 ### Format rules
 
 - Quiz and question IDs must be stable, unique, and kebab-case.
-- Every question must contain `Question`, `Options`, `Answer`, and `Explanation` sections.
+- New quizzes use `schemaVersion: 2`; legacy files without it remain supported.
+- Every question must contain `Question`, `Options`, `Answer`, and `Explanation`; optional `Points` defaults to 1.
 - Each option uses one line: `- [ ] A. Option content`.
-- `Answer` contains exactly one option ID.
+- A single answer is a bare option ID. Multiple answers use one list item per correct ID.
 - Questions, explanations, and option content support Markdown.
-- Set `published: false` to keep a valid quiz hidden from the catalog.
+- `public` quizzes appear in the catalog, `unlisted` quizzes require a direct link, and `private` quizzes are not publicly available.
 
 ### Keeping private quizzes out of Git
 
@@ -122,16 +139,20 @@ To publish a quiz with your fork, add an allow rule to `.gitignore`:
 !/content/quizzes/your-public-quiz.md
 ```
 
-Source-material folders matching `content/*-docs/` are also ignored and never required by the app.
+Private source material and quiz-generation instructions belong in
+`local/quiz-authoring/<project>/`. The entire `local/` directory is ignored and
+is never required by the app. Generated quiz files still go in
+`content/quizzes/`, where they remain private unless explicitly allowlisted.
 
 ## Keyboard shortcuts
 
 | Shortcut | Action |
 | --- | --- |
-| `A`–`D` or `1`–`4` | Select an answer |
+| Option ID or `1`–`9` | Select or toggle an answer |
 | `←` / `→` | Previous / next question |
+| `F` | Flag the current question |
 | `Ctrl` + `Enter` or `⌘` + `Enter` | Submit the quiz |
-| `T` | Toggle light/dark mode |
+| `Alt` + `T` or `⌥` + `T` | Toggle light/dark mode |
 
 Shortcuts are disabled while focus is inside a text input or dialog.
 
@@ -142,18 +163,22 @@ Copy `.env.example` to `.env.local`:
 ```dotenv
 DATABASE_URL=./data/markq.db
 NEXT_PUBLIC_SITE_URL=https://quiz.example.com
+MARKQ_ADMIN_TOKEN=replace-with-at-least-32-random-characters
 ```
 
 | Variable | Required | Description |
 | --- | --- | --- |
 | `DATABASE_URL` | No | SQLite path. Defaults to `./data/markq.db`. |
 | `NEXT_PUBLIC_SITE_URL` | Production SEO | Public origin used for canonical URLs, Open Graph metadata, and the sitemap. |
+| `MARKQ_ADMIN_TOKEN` | No | Enables `/manage` and its API when set to at least 32 characters. Keep it secret. |
 
 When deployed on Vercel, MarkQ also reads `VERCEL_PROJECT_PRODUCTION_URL` automatically if `NEXT_PUBLIC_SITE_URL` is not set.
 
 ## SQLite and deployment
 
 MarkQ writes attempts to the SQLite file configured by `DATABASE_URL`. For production, deploy to a server or container with a **persistent volume** mounted for the `data` directory. An ephemeral or read-only filesystem will lose result history or prevent submissions.
+
+Use `GET /api/health` for readiness checks. It verifies SQLite and reports invalid quiz documents. A degraded quiz catalog returns HTTP 503 so deployment monitoring can detect content errors.
 
 Example backup:
 
@@ -188,14 +213,19 @@ bun run start
 content/quizzes/*.md
         │
         ▼
-Markdown parser + validator ──► public quiz DTO ──► browser
-        │                            (no answers)
-        └──► server-side grading ──► SQLite attempt snapshot ──► review UI
+Markdown parser + validator ──► start/resume use case ──► safe attempt DTO ──► browser hook
+        │                              │                         │
+        │                              └──► SQLite autosave ◄────┘
+        └──► server timer + grading ──► immutable review snapshot ──► review UI
 ```
 
-Correct answers and explanations are removed before quiz data crosses the Server Component boundary. On submission, the server reloads the trusted Markdown source, validates selected question and option IDs, grades the attempt, and saves a review snapshot.
+Correct answers and explanations never cross into the active quiz workspace. The server snapshots settings, shuffled question/option order, answer keys, and explanations when the attempt starts; only safe fields reach the browser. It validates and autosaves every selection, enforces the deadline and owner, grades idempotently, then exposes the review snapshot only when review is enabled.
 
-The current MVP intentionally has no authentication. Anyone who can reach a deployment can take quizzes and view its shared attempt history. Add authentication before using MarkQ for private multi-user data.
+Each browser receives an opaque, HTTP-only guest session and can access only its own attempts. This is an ownership boundary rather than account authentication: deployments that need named users, cross-device history, SSO, or high-stakes identity verification should replace the session adapter with their authentication provider while keeping the application/repository ports.
+
+## Manage quiz content
+
+Directly adding `.md` files remains the simplest workflow. To enable the optional browser editor, configure `MARKQ_ADMIN_TOKEN`, restart MarkQ, and open `/manage`. Enter the token to list, create, validate, and atomically save quiz files. The token is sent as a Bearer credential and is never stored in a cookie; do not expose it in client environment variables.
 
 ## AI-assisted quiz authoring
 

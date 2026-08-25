@@ -17,8 +17,8 @@
 /data/*.db
 /data/*.db-*
 
-# private source material and local quizzes
-/content/*-docs/
+# private authoring material and local quizzes
+/local/
 /content/quizzes/*.md
 !/content/quizzes/example-quiz.md
 

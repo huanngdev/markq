@@ -2,8 +2,9 @@ import { connection } from "next/server";
 
 import { QuizCatalog } from "@/components/quiz-catalog";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { getQuizAttemptStats } from "@/lib/attempts/repository";
-import { readQuizCatalog } from "@/lib/quizzes/repository";
+import { getOwnedQuizAttemptStats } from "@/lib/attempts/server-attempt-service";
+import { getSessionUserId } from "@/lib/auth/session";
+import { getPublicQuizCatalog } from "@/lib/quizzes/repository";
 import { toQuizSummary } from "@/lib/quizzes/types";
 
 export default async function HomePage({
@@ -13,9 +14,10 @@ export default async function HomePage({
 }) {
   await connection();
   const { status } = await searchParams;
-  const catalog = readQuizCatalog();
+  const catalog = getPublicQuizCatalog();
   const quizzes = catalog.quizzes.map(toQuizSummary);
-  const stats = getQuizAttemptStats();
+  const userId = await getSessionUserId();
+  const stats = userId ? getOwnedQuizAttemptStats(userId) : {};
 
   return (
     <main className="mx-auto min-h-svh w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
@@ -31,7 +33,7 @@ export default async function HomePage({
       <QuizCatalog
         quizzes={quizzes}
         stats={stats}
-        initialTab={status === "completed" ? "completed" : "not-started"}
+        initialTab={status === "completed" ? "completed" : "available"}
         errors={
           process.env.NODE_ENV === "development"
             ? catalog.errors.map((error) => error.message)

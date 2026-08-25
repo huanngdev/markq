@@ -1,45 +1,14 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
-import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-
-function isTypingTarget(target: EventTarget | null) {
-  return target instanceof HTMLElement && (
-    target.isContentEditable ||
-    target.matches("input:not([type='radio']), textarea, select")
-  );
-}
+import { useThemeToggle } from "@/features/theme/hooks/use-theme-toggle";
 
 export function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
-
-  function toggleTheme() {
-    setTheme(resolvedTheme === "dark" ? "light" : "dark");
-  }
-
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (
-        event.defaultPrevented ||
-        event.ctrlKey ||
-        event.metaKey ||
-        event.altKey ||
-        event.key.toLowerCase() !== "t" ||
-        isTypingTarget(event.target)
-      ) return;
-
-      event.preventDefault();
-      setTheme(resolvedTheme === "dark" ? "light" : "dark");
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [resolvedTheme, setTheme]);
+  const { toggleTheme } = useThemeToggle();
 
   return (
     <Tooltip>
@@ -57,7 +26,7 @@ export function ThemeToggle() {
           </Button>
         )}
       />
-      <TooltipContent>Toggle theme <Kbd>T</Kbd></TooltipContent>
+      <TooltipContent>Toggle theme <Kbd>⌥T</Kbd></TooltipContent>
     </Tooltip>
   );
 }

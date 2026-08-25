@@ -8,6 +8,13 @@
       "when": 1787319416275,
       "tag": "0000_unknown_magik",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1787628448228,
+      "tag": "0001_late_beast",
+      "breakpoints": true
     }
   ]
 }

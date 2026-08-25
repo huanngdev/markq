@@ -1,36 +1,31 @@
 import { z } from "zod";
 
-import { createAttempt } from "@/lib/attempts/repository";
+import { AttemptApplicationError } from "@/lib/attempts/application";
+import { startOrResumeAttempt } from "@/lib/attempts/server-attempt-service";
+import { requireSessionUserId } from "@/lib/auth/session";
 import { getQuizById } from "@/lib/quizzes/repository";
 
-const submissionSchema = z.object({
-  quizId: z.string().min(1).max(120),
-  answers: z.record(z.string().min(1).max(120), z.string().min(1).max(16)).default({}),
-});
+const startAttemptSchema = z.object({ quizId: z.string().min(1).max(120) });
 
 export async function POST(request: Request) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "The request body is not valid JSON." }, { status: 400 });
+  const body = await request.json().catch((): unknown => null);
+  const input = startAttemptSchema.safeParse(body);
+  if (!input.success) {
+    return Response.json({ error: "The start request is invalid." }, { status: 400 });
   }
 
-  const submission = submissionSchema.safeParse(body);
-  if (!submission.success) {
-    return Response.json({ error: "The submitted attempt is invalid." }, { status: 400 });
-  }
-
-  const quiz = getQuizById(submission.data.quizId);
+  const quiz = getQuizById(input.data.quizId);
   if (!quiz) {
     return Response.json({ error: "The quiz was not found or is not published." }, { status: 404 });
   }
 
   try {
-    const attemptId = createAttempt(quiz, submission.data.answers);
-    return Response.json({ attemptId }, { status: 201 });
+    const userId = await requireSessionUserId();
+    return Response.json({ attempt: startOrResumeAttempt(userId, quiz) }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Could not grade the quiz.";
-    return Response.json({ error: message }, { status: 400 });
+    if (error instanceof AttemptApplicationError) {
+      return Response.json({ error: error.message }, { status: 409 });
+    }
+    return Response.json({ error: "Could not start the quiz." }, { status: 500 });
   }
 }

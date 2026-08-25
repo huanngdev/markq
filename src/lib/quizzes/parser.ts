@@ -5,18 +5,41 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { z } from "zod";
 
-import type { Quiz, QuizOption, QuizQuestion } from "./types";
+import {
+  currentQuizSchemaVersion,
+  defaultQuizSettings,
+  type Quiz,
+  type QuizOption,
+  type QuizQuestion,
+} from "./types";
+
+const quizSettingsSchema = z.object({
+  timeLimitMinutes: z.number().int().positive().max(1_440).nullable().default(null),
+  shuffleQuestions: z.boolean().default(false),
+  shuffleOptions: z.boolean().default(false),
+  navigationMode: z.enum(["free", "sequential"]).default("free"),
+  allowUnanswered: z.boolean().default(true),
+  reviewMode: z.enum(["after-submit", "never"]).default("after-submit"),
+  passingScore: z.number().min(0).max(100).nullable().default(null),
+  expireBehavior: z.enum(["auto-submit", "mark-expired"]).default("auto-submit"),
+  scoringMode: z.enum(["exact", "partial"]).default("exact"),
+  incorrectPenalty: z.number().min(0).default(0),
+  attemptsAllowed: z.number().int().positive().nullable().default(null),
+});
 
 const frontmatterSchema = z.object({
+  schemaVersion: z.union([z.literal(1), z.literal(currentQuizSchemaVersion)]).default(1),
   id: z.string().trim().min(1).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "must use kebab-case"),
   title: z.string().trim().min(1),
   description: z.string().trim().default(""),
   tags: z.array(z.string().trim().min(1)).default([]),
   published: z.boolean().default(true),
+  visibility: z.enum(["public", "unlisted", "private"]).default("public"),
+  settings: quizSettingsSchema.default(defaultQuizSettings),
 });
 
-const sectionNames = ["question", "options", "answer", "explanation"] as const;
-type SectionName = (typeof sectionNames)[number];
+const requiredSectionNames = ["question", "options", "answer", "explanation"] as const;
+type SectionName = (typeof requiredSectionNames)[number] | "points";
 const sectionAliases: Record<string, SectionName> = {
   question: "question",
   "câu hỏi": "question",
@@ -26,6 +49,8 @@ const sectionAliases: Record<string, SectionName> = {
   "đáp án": "answer",
   explanation: "explanation",
   "lời giải": "explanation",
+  points: "points",
+  "điểm": "points",
 };
 
 type MarkdownNode = {
@@ -144,13 +169,51 @@ function sectionContent(segment: string, tree: Root, sourceFile: string, questio
     sections.set(name, segment.slice(start, end).trim());
   });
 
-  for (const name of sectionNames) {
+  for (const name of requiredSectionNames) {
     if (!sections.get(name)) {
       throw new QuizFormatError(sourceFile, `missing or empty section "${name}"`, questionId);
     }
   }
 
   return sections as Map<SectionName, string>;
+}
+
+function parseCorrectOptions(raw: string, sourceFile: string, questionId: string) {
+  const lines = raw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const listPattern = /^-\s*(?:\[(?: |x|X)\]\s*)?([A-Za-z0-9]+)$/;
+  const values = lines.length === 1 && !lines[0].startsWith("-")
+    ? [lines[0]]
+    : lines.map((line) => {
+        const match = line.match(listPattern);
+        if (!match) {
+          throw new QuizFormatError(
+            sourceFile,
+            `multiple answers must use one option ID per list item: ${line}`,
+            questionId,
+          );
+        }
+        return match[1];
+      });
+  const answers = values.map((value) => value.trim().toUpperCase());
+
+  if (answers.some((answer) => !/^[A-Z0-9]+$/.test(answer))) {
+    throw new QuizFormatError(sourceFile, "answer must be an option ID", questionId);
+  }
+  if (new Set(answers).size !== answers.length) {
+    throw new QuizFormatError(sourceFile, "answer option IDs must be unique", questionId);
+  }
+
+  return answers;
+}
+
+function parsePoints(raw: string | undefined, sourceFile: string, questionId: string) {
+  if (raw === undefined) return 1;
+
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new QuizFormatError(sourceFile, "points must be a positive number", questionId);
+  }
+  return value;
 }
 
 function parseOptions(raw: string, sourceFile: string, questionId: string): QuizOption[] {
@@ -192,12 +255,14 @@ function parseQuestion(
   const tree = markdownParser.parse(segment) as Root;
   const sections = sectionContent(segment, tree, sourceFile, questionId);
   const options = parseOptions(sections.get("options")!, sourceFile, questionId);
-  const correctOption = sections.get("answer")!.trim().toUpperCase();
+  const correctOptions = parseCorrectOptions(sections.get("answer")!, sourceFile, questionId);
+  const optionIds = new Set(options.map((option) => option.id));
 
-  if (!options.some((option) => option.id === correctOption)) {
+  const unknownAnswer = correctOptions.find((answer) => !optionIds.has(answer));
+  if (unknownAnswer) {
     throw new QuizFormatError(
       sourceFile,
-      `answer "${correctOption}" does not exist in the option list`,
+      `answer "${unknownAnswer}" does not exist in the option list`,
       questionId,
     );
   }
@@ -206,7 +271,9 @@ function parseQuestion(
     id: questionId,
     prompt: rewriteRelativeImageUrls(sections.get("question")!, sourceFile),
     options,
-    correctOption,
+    correctOptions,
+    selectionMode: correctOptions.length === 1 ? "single" : "multiple",
+    points: parsePoints(sections.get("points"), sourceFile, questionId),
     explanation: rewriteRelativeImageUrls(sections.get("explanation")!, sourceFile),
   };
 }
