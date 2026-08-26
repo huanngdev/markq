@@ -5,10 +5,12 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { z } from "zod";
 
-import type { KnowledgeDocument, KnowledgeSubject, KnowledgeTopic } from "./types";
+import { defaultSubjectTitle, isKnowledgeSubject } from "./subject";
+import type { KnowledgeDocument, KnowledgeTopic } from "./types";
 
 const metadataSchema = z.object({
-  subject: z.enum(["english", "iq"]),
+  subject: z.string().refine(isKnowledgeSubject, "subject must use kebab-case; all is reserved"),
+  subjectTitle: z.string().trim().min(1).optional(),
   title: z.string().trim().min(1),
   description: z.string().trim().default(""),
 });
@@ -68,6 +70,7 @@ export function parseKnowledgeMarkdown(raw: string, sourceFile = "knowledge.md")
   }
 
   const ids = new Set<string>();
+  const subjectTitle = metadata.data.subjectTitle ?? defaultSubjectTitle(metadata.data.subject);
   const topics = headings.map((heading, index): KnowledgeTopic => {
     const parsedHeading = parseTopicHeading(toString(heading).trim(), sourceFile);
     if (ids.has(parsedHeading.id)) {
@@ -82,11 +85,12 @@ export function parseKnowledgeMarkdown(raw: string, sourceFile = "knowledge.md")
     if (!content) throw new KnowledgeFormatError(sourceFile, `topic content is empty: ${parsedHeading.id}`);
     return {
       ...parsedHeading,
-      subject: metadata.data.subject as KnowledgeSubject,
+      subject: metadata.data.subject,
+      subjectTitle,
       content,
       sourceFile,
     };
   });
 
-  return { ...metadata.data, topics, sourceFile };
+  return { ...metadata.data, subjectTitle, topics, sourceFile };
 }

@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { KnowledgeFormatError, parseKnowledgeMarkdown } from "../src/lib/knowledge/parser";
+import { validateKnowledgeDocument } from "../src/lib/knowledge/catalog-validation";
+import { parseKnowledgeMarkdown } from "../src/lib/knowledge/parser";
+import type { KnowledgeTopic } from "../src/lib/knowledge/types";
 import { parseQuizMarkdown, QuizFormatError } from "../src/lib/quizzes/parser";
 
 const directory = path.join(process.cwd(), "content", "quizzes");
@@ -38,7 +40,7 @@ if (!fs.existsSync(directory)) {
     console.error("No .md files were found in content/quizzes.");
   }
 
-  const knowledgeTopicIds = new Set<string>();
+  const knowledgeTopics = new Map<string, KnowledgeTopic>();
   if (fs.existsSync(knowledgeDirectory)) {
     const knowledgeFiles = fs.readdirSync(knowledgeDirectory).filter((file) => file.endsWith(".md"));
     for (const file of knowledgeFiles) {
@@ -47,12 +49,8 @@ if (!fs.existsSync(directory)) {
           fs.readFileSync(path.join(knowledgeDirectory, file), "utf8"),
           file,
         );
-        for (const topic of document.topics) {
-          if (knowledgeTopicIds.has(topic.id)) {
-            throw new KnowledgeFormatError(file, `duplicate topic ID: ${topic.id}`);
-          }
-          knowledgeTopicIds.add(topic.id);
-        }
+        validateKnowledgeDocument(document, knowledgeTopics);
+        for (const topic of document.topics) knowledgeTopics.set(topic.id, topic);
         console.log(`✓ ${file}: ${document.topics.length} knowledge topics`);
       } catch (error) {
         failed = true;
@@ -62,7 +60,7 @@ if (!fs.existsSync(directory)) {
   }
 
   for (const reference of topicReferences) {
-    if (!knowledgeTopicIds.has(reference.topicId)) {
+    if (!knowledgeTopics.has(reference.topicId)) {
       failed = true;
       console.error(`✗ ${reference.file} (${reference.questionId}): unknown topic ID: ${reference.topicId}`);
     }

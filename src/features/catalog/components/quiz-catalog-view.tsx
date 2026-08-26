@@ -2,6 +2,7 @@
 
 import { ArrowRight, BookOpen, CheckCircle2, Clock3, RotateCcw } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { CatalogTab } from "@/features/catalog/hooks/use-quiz-catalog";
+import type { CatalogTab } from "@/features/catalog/navigation";
 import type { QuizAttemptStat } from "@/lib/attempts/types";
 import type { QuizSummary } from "@/lib/quizzes/types";
 
@@ -70,11 +71,12 @@ function QuizGrid({ quizzes, stats, completed }: {
   );
 }
 
-export function QuizCatalogView({ quizzes, stats, tab, errors, onTabChange }: {
+export function QuizCatalogView({ quizzes, stats, tab, errors, analytics, onTabChange }: {
   quizzes: QuizSummary[];
   stats: Record<string, QuizAttemptStat>;
   tab: CatalogTab;
   errors: string[];
+  analytics: ReactNode;
   onTabChange(value: string): void;
 }) {
   const available = quizzes.filter((quiz) => (stats[quiz.id]?.attemptCount ?? 0) === 0);
@@ -82,12 +84,14 @@ export function QuizCatalogView({ quizzes, stats, tab, errors, onTabChange }: {
   return (
     <>
       <Tabs value={tab} onValueChange={onTabChange}>
-        <TabsList className="mb-5 h-10 w-full sm:w-auto">
-          <TabsTrigger value="available" className="px-4">Available <Badge variant="secondary">{available.length}</Badge></TabsTrigger>
-          <TabsTrigger value="completed" className="px-4">Completed <Badge variant="secondary">{completed.length}</Badge></TabsTrigger>
+        <TabsList aria-label="Quiz catalog" className="mb-5 h-10 w-full sm:w-auto">
+          <TabsTrigger value="available" className="px-2 sm:px-4">Available <Badge variant="secondary">{available.length}</Badge></TabsTrigger>
+          <TabsTrigger value="completed" className="px-2 sm:px-4">Completed <Badge variant="secondary">{completed.length}</Badge></TabsTrigger>
+          <TabsTrigger value="analytics" className="px-2 sm:px-4">Analytics</TabsTrigger>
         </TabsList>
         <TabsContent value="available"><QuizGrid quizzes={available} stats={stats} completed={false} /></TabsContent>
         <TabsContent value="completed"><QuizGrid quizzes={completed} stats={stats} completed /></TabsContent>
+        <TabsContent value="analytics">{analytics}</TabsContent>
       </Tabs>
       {errors.length > 0 ? (
         <Alert variant="destructive" className="mt-6"><AlertTitle>{errors.length} quiz files were skipped</AlertTitle><AlertDescription><ul className="list-disc pl-5">{errors.map((error) => <li key={error}>{error}</li>)}</ul></AlertDescription></Alert>

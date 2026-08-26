@@ -152,13 +152,16 @@ is never required by the app. Generated quiz files still go in
 
 ## Analytics and knowledge articles
 
-The **Analytics** tab summarizes completed attempts for the current guest session. It separates English and IQ results, ranks topics by incorrect answers and accuracy, and shows the questions most often missed. Unanswered questions are tracked separately from incorrect answers.
+The home page has one tab row: **Available**, **Completed**, and **Analytics**. Analytics summarizes completed attempts for the current guest session. Subjects are discovered from your knowledge files, so any quiz domain works without changing application code. It ranks topics by incorrect answers and accuracy; unanswered questions are tracked separately from incorrect answers.
+
+**Knowledge review** displays weak topics as cards like the quiz catalog. Click a card to open the full lesson and missed-question examples on its own page, then use **Back to Analytics** to return to the same subject filter. Completed quizzes and their review links are available in **Completed**; there is no separate History page.
 
 To add review material, create a Markdown file in `content/knowledge/`:
 
 ```md
 ---
 subject: english
+subjectTitle: English
 title: English knowledge base
 description: Grammar and vocabulary lessons.
 ---
@@ -174,7 +177,9 @@ Use the second conditional for unreal or unlikely present and future situations.
 If I had more time, I would study another language.
 ```
 
-The text before `|` must exactly match a question's `Topic`; the text after it is the display title. Article bodies support Markdown and can include formulas, reasoning, hints, examples, and common mistakes. Run `bun run quiz:validate` to catch missing or duplicate topic references.
+The text before `|` must exactly match a question's `Topic`; the text after it is the display title. `subject` is any kebab-case ID except the reserved `all`; `subjectTitle` is its optional display name. Article bodies support Markdown and can include formulas, reasoning, hints, examples, and common mistakes. Run `bun run quiz:validate` to catch missing/duplicate topic references and conflicting subject names.
+
+See [Analytics authoring guide](docs/ANALYTICS.md) for a complete custom-subject example, scoring semantics, troubleshooting, and a reusable agent workflow. English and IQ are examples, not built-in restrictions.
 
 Like private quizzes, `content/knowledge/*.md` is ignored by Git by default. Add an explicit allow rule only when you intend to publish a knowledge file.
 

@@ -13,6 +13,7 @@ export type AnalyticsAnswerRecord = {
 export type TopicAnalytics = {
   topicId: string;
   subject: KnowledgeSubject;
+  subjectTitle: string;
   title: string;
   correctCount: number;
   incorrectCount: number;
@@ -25,6 +26,7 @@ export type TopicAnalytics = {
 
 export type SubjectAnalytics = {
   subject: KnowledgeSubject;
+  subjectTitle: string;
   attemptCount: number;
   correctCount: number;
   incorrectCount: number;
@@ -41,7 +43,7 @@ export type AnalyticsReport = {
   unansweredCount: number;
   questionCount: number;
   accuracyPercent: number;
-  subjects: Record<KnowledgeSubject, SubjectAnalytics>;
+  subjects: SubjectAnalytics[];
   weakTopics: TopicAnalytics[];
   knowledgeErrors: string[];
 };

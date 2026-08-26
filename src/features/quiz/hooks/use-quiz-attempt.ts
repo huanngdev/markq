@@ -181,7 +181,7 @@ export function useQuizAttempt(quizId: string) {
       const payload: unknown = await response.json().catch(() => null);
       if (!response.ok) throw new Error(responseError(payload, "Could not submit the quiz."));
       const result = submitAttemptResponseSchema.parse(payload);
-      if (attempt.settings.reviewMode === "never") router.push("/attempts");
+      if (attempt.settings.reviewMode === "never") router.push("/?status=completed");
       else router.push(`/attempts/${result.attemptId}`);
     } catch (error) {
       isSubmittingRef.current = false;

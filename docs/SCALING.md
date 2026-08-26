@@ -42,6 +42,8 @@ The filesystem repository currently reparses Markdown per request. For hundreds 
 
 Question topics are copied into attempt snapshots, so historical analytics remain stable after a quiz file changes. Knowledge articles live in `content/knowledge/` and are joined by their kebab-case topic ID. For larger datasets, move aggregation behind the analytics repository boundary and precompute per-user topic counters; keep knowledge Markdown as independently deployable content.
 
+Subjects and display titles are discovered from knowledge frontmatter, with no fixed subject enum. Follow [ANALYTICS.md](ANALYTICS.md) to add a domain using content alone. Keep topic IDs and subject assignments stable; legacy attempts use a current-quiz fallback when no topic snapshot exists.
+
 ### Horizontal deployment
 
 SQLite requires a persistent volume and is best for one application writer. Multiple instances should use a shared transactional database or a single-writer SQLite service. Session identity is already stateless in an HTTP-only cookie, so only the repository adapter changes.

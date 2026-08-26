@@ -10,6 +10,7 @@ Produce a `.md` quiz that MarkQ accepts without manual cleanup.
 ## Workflow
 
 1. Read [references/format.md](references/format.md) completely before authoring or repairing a quiz.
+   When linking questions to Analytics, also read [the subject-independent authoring guide](../../../docs/ANALYTICS.md). Subjects come from knowledge frontmatter, not a fixed English/IQ list.
 2. Preserve the user's language, wording, difficulty, choices, answers, points, and explanations. Ask when the source does not establish the correct answer.
 3. For structured data, prefer the deterministic generator:
 

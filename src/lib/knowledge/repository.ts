@@ -3,6 +3,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 
+import { validateKnowledgeDocument } from "./catalog-validation";
 import { KnowledgeFormatError, parseKnowledgeMarkdown } from "./parser";
 import type { KnowledgeDocument, KnowledgeTopic } from "./types";
 
@@ -32,12 +33,8 @@ export function readKnowledgeCatalog(): KnowledgeCatalog {
         fs.readFileSync(path.join(knowledgeDirectory, file), "utf8"),
         file,
       );
-      for (const topic of document.topics) {
-        if (topics.has(topic.id)) {
-          throw new KnowledgeFormatError(file, `duplicate topic ID across documents: ${topic.id}`);
-        }
-        topics.set(topic.id, topic);
-      }
+      validateKnowledgeDocument(document, topics);
+      for (const topic of document.topics) topics.set(topic.id, topic);
       documents.push(document);
     } catch (error) {
       errors.push(error instanceof KnowledgeFormatError

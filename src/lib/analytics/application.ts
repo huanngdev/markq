@@ -1,5 +1,3 @@
-import type { KnowledgeSubject } from "@/lib/knowledge/types";
-
 import type {
   AnalyticsAnswerRecord,
   AnalyticsReport,
@@ -15,19 +13,6 @@ type MutableTopic = Omit<TopicAnalytics, "accuracyPercent"> & {
 
 function percentage(correct: number, total: number) {
   return total === 0 ? 0 : Math.round((correct / total) * 100);
-}
-
-function emptySubject(subject: KnowledgeSubject): SubjectAnalytics {
-  return {
-    subject,
-    attemptCount: 0,
-    correctCount: 0,
-    incorrectCount: 0,
-    unansweredCount: 0,
-    questionCount: 0,
-    accuracyPercent: 0,
-    topics: [],
-  };
 }
 
 function compareWeakness(left: TopicAnalytics, right: TopicAnalytics) {
@@ -59,6 +44,7 @@ export function buildAnalyticsReport(
       topic = {
         topicId,
         subject: knowledge.subject,
+        subjectTitle: knowledge.subjectTitle,
         title: knowledge.title,
         correctCount: 0,
         incorrectCount: 0,
@@ -88,6 +74,7 @@ export function buildAnalyticsReport(
   const finalizedTopics = [...topics.values()].map((topic) => ({
     topicId: topic.topicId,
     subject: topic.subject,
+    subjectTitle: topic.subjectTitle,
     title: topic.title,
     correctCount: topic.correctCount,
     incorrectCount: topic.incorrectCount,
@@ -97,12 +84,9 @@ export function buildAnalyticsReport(
     mistakeExamples: topic.mistakeExamples,
     knowledgeMarkdown: topic.knowledgeMarkdown,
   }));
-  const subjects: Record<KnowledgeSubject, SubjectAnalytics> = {
-    english: emptySubject("english"),
-    iq: emptySubject("iq"),
-  };
-
-  for (const subject of ["english", "iq"] as const) {
+  const subjectTitles = new Map([...knowledgeTopics.values()].map((topic) => [topic.subject, topic.subjectTitle]));
+  const subjects: SubjectAnalytics[] = [];
+  for (const [subject, subjectTitle] of subjectTitles) {
     const subjectTopics = finalizedTopics
       .filter((topic) => topic.subject === subject)
       .toSorted(compareWeakness);
@@ -119,8 +103,9 @@ export function buildAnalyticsReport(
       }),
       { correct: 0, incorrect: 0, unanswered: 0, questions: 0 },
     );
-    subjects[subject] = {
+    subjects.push({
       subject,
+      subjectTitle,
       attemptCount: attemptIds.size,
       correctCount: totals.correct,
       incorrectCount: totals.incorrect,
@@ -128,14 +113,15 @@ export function buildAnalyticsReport(
       questionCount: totals.questions,
       accuracyPercent: percentage(totals.correct, totals.questions),
       topics: subjectTopics,
-    };
+    });
   }
+  subjects.sort((left, right) => left.subjectTitle.localeCompare(right.subjectTitle));
 
   const attemptIds = new Set<string>();
   for (const topic of topics.values()) topic.attemptIds.forEach((id) => attemptIds.add(id));
-  const correctCount = subjects.english.correctCount + subjects.iq.correctCount;
-  const incorrectCount = subjects.english.incorrectCount + subjects.iq.incorrectCount;
-  const unansweredCount = subjects.english.unansweredCount + subjects.iq.unansweredCount;
+  const correctCount = subjects.reduce((sum, subject) => sum + subject.correctCount, 0);
+  const incorrectCount = subjects.reduce((sum, subject) => sum + subject.incorrectCount, 0);
+  const unansweredCount = subjects.reduce((sum, subject) => sum + subject.unansweredCount, 0);
   const questionCount = correctCount + incorrectCount + unansweredCount;
 
   return {

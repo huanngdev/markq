@@ -1,23 +1,35 @@
+import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { QuizCatalog } from "@/components/quiz-catalog";
-import { AppNav } from "@/components/app-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AnalyticsView } from "@/features/analytics/components/analytics-view";
+import { analyticsSubjectFrom, catalogTabFrom } from "@/features/catalog/navigation";
+import { getOwnedAnalyticsReport } from "@/lib/analytics/server-analytics-service";
 import { getOwnedQuizAttemptStats } from "@/lib/attempts/server-attempt-service";
 import { getSessionUserId } from "@/lib/auth/session";
 import { getPublicQuizCatalog } from "@/lib/quizzes/repository";
 import { toQuizSummary } from "@/lib/quizzes/types";
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ status?: string }>;
-}) {
+type HomePageProps = {
+  searchParams: Promise<{ status?: string | string[]; subject?: string | string[] }>;
+};
+
+export async function generateMetadata({ searchParams }: HomePageProps): Promise<Metadata> {
+  const tab = catalogTabFrom((await searchParams).status);
+  if (tab === "available") return {};
+  return {
+    title: tab === "analytics" ? "Analytics" : "Completed quizzes",
+    robots: { index: false, follow: false },
+  };
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
   await connection();
-  const { status } = await searchParams;
+  const [{ status, subject }, userId] = await Promise.all([searchParams, getSessionUserId()]);
+  const tab = catalogTabFrom(status);
   const catalog = getPublicQuizCatalog();
   const quizzes = catalog.quizzes.map(toQuizSummary);
-  const userId = await getSessionUserId();
   const stats = userId ? getOwnedQuizAttemptStats(userId) : {};
 
   return (
@@ -31,11 +43,17 @@ export default async function HomePage({
         </div>
         <ThemeToggle />
       </div>
-      <div className="mb-6"><AppNav active="quizzes" /></div>
       <QuizCatalog
         quizzes={quizzes}
         stats={stats}
-        initialTab={status === "completed" ? "completed" : "available"}
+        initialTab={tab}
+        analytics={tab === "analytics" ? (
+          <AnalyticsView
+            report={getOwnedAnalyticsReport(userId ?? "")}
+            filter={analyticsSubjectFrom(subject)}
+            showErrors={process.env.NODE_ENV === "development"}
+          />
+        ) : null}
         errors={
           process.env.NODE_ENV === "development"
             ? catalog.errors.map((error) => error.message)
