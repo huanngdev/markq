@@ -1,89 +1,133 @@
-# MarkQ quiz format
+# MarkQ quiz format v2
 
 ## Frontmatter
 
-Every quiz begins with YAML frontmatter:
-
 ```yaml
 ---
+schemaVersion: 2
 id: javascript-basic
 title: JavaScript Fundamentals
 description: Test foundational JavaScript knowledge.
 tags:
   - javascript
-  - beginner
 published: true
+visibility: public
+settings:
+  timeLimitMinutes: 30
+  shuffleQuestions: true
+  shuffleOptions: true
+  navigationMode: free
+  allowUnanswered: true
+  reviewMode: after-submit
+  passingScore: 70
+  expireBehavior: auto-submit
+  scoringMode: exact
+  incorrectPenalty: 0
+  attemptsAllowed: null
 ---
 ```
 
-- `id`: required, unique across files, kebab-case (`a-z`, `0-9`, hyphens).
-- `title`: required, non-empty.
-- `description`: optional text; use an empty string if no description is available.
-- `tags`: optional list of non-empty strings.
-- `published`: boolean; defaults to `true` when omitted, but write it explicitly.
+- `schemaVersion`: use `2` for new files. Files without it remain compatible as v1.
+- `id`: globally unique kebab-case ID; `title` is required.
+- `description` and `tags` are optional.
+- `published`: whether the file is loaded. `visibility` is `public`, `unlisted`, or `private`; only public quizzes appear in the catalog.
+- `timeLimitMinutes`: positive integer up to 1440, or `null`.
+- `navigationMode`: `free` or `sequential`.
+- `reviewMode`: `after-submit` or `never`.
+- `passingScore`: number from 0 through 100, or `null`.
+- `expireBehavior`: `auto-submit` or `mark-expired`.
+- `scoringMode`: `exact` or `partial`; `incorrectPenalty` is a non-negative point penalty.
+- `attemptsAllowed`: positive integer, or `null`.
 
-The level-1 title after frontmatter is for Obsidian readability. Keep it equal to `title`.
-
-## Question block
-
-Each question starts with a unique level-2 kebab-case ID and contains four required level-3 sections in this order:
+## Single-answer question
 
 ```md
-## q1
+## typeof-null
 
 ### Question
 
-Question content supports **Markdown**, code blocks, and images.
+What does `typeof null` return?
 
 ### Options
 
-- [ ] A. First option
-- [ ] B. Second option
-- [ ] C. Third option
-- [ ] D. Fourth option
+- [ ] A. `null`
+- [ ] B. `object`
 
 ### Answer
 
 B
 
+### Topic
+
+javascript-types
+
+### Points
+
+1
+
 ### Explanation
 
-Explain why B is correct and, when useful, why the other options are incorrect.
+`typeof null` returns `"object"` because of a historical JavaScript behavior.
 ```
 
-MarkQ MVP supports exactly one correct answer. Two or more options are allowed; four is a convention, not a requirement. Option IDs may contain ASCII letters or digits and are normalized to uppercase. Each option's Markdown source must remain on one line.
+## Multiple-answer question
 
-## JSON input for the generator
+```md
+## select-primes
 
-The generator accepts UTF-8 JSON shaped like this:
+### Question
+
+Select every prime number.
+
+### Options
+
+- [ ] A. 2
+- [ ] B. 3
+- [ ] C. 4
+
+### Answer
+
+- A
+- B
+
+### Points
+
+2.5
+
+### Explanation
+
+2 and 3 each have exactly two positive divisors; 4 is composite.
+```
+
+Question IDs are unique kebab-case. Option IDs contain ASCII letters or digits and normalize to uppercase. Each option stays on one source line. `Topic` is optional and contains one kebab-case ID matching a topic in `content/knowledge`; it lets Analytics group mistakes and display the associated lesson. `Points` is optional, must be positive, and defaults to 1.
+
+## Generator JSON
+
+The JSON mirrors frontmatter. Each question has `id`, `prompt`, `options`, `answer`, optional `topicId`, `points`, and `explanation`. `answer` is either one string or an array:
 
 ```json
 {
-  "id": "javascript-basic",
-  "title": "JavaScript Fundamentals",
-  "description": "Test foundational knowledge.",
-  "tags": ["javascript", "beginner"],
-  "published": true,
+  "id": "number-basics",
+  "title": "Number Basics",
+  "published": false,
+  "visibility": "private",
+  "settings": { "timeLimitMinutes": 20, "shuffleQuestions": true },
   "questions": [
     {
-      "id": "q1",
-      "prompt": "What does `typeof null` return?",
+      "id": "select-primes",
+      "prompt": "Select every prime number.",
       "options": [
-        { "id": "A", "content": "`null`" },
-        { "id": "B", "content": "`object`" }
+        { "id": "A", "content": "2" },
+        { "id": "B", "content": "3" },
+        { "id": "C", "content": "4" }
       ],
-      "answer": "B",
-      "explanation": "This is historical JavaScript behavior."
+      "answer": ["A", "B"],
+      "topicId": "math-prime-numbers",
+      "points": 2,
+      "explanation": "2 and 3 are prime; 4 is composite."
     }
   ]
 }
 ```
 
-Run:
-
-```bash
-python3 .agents/skills/markq-quiz-author/scripts/generate_quiz.py --input quiz.json
-bun run quiz:validate
-```
-
-The script refuses invalid IDs, duplicate IDs, missing explanations, multiline option text, unknown answers, and accidental overwrite.
+Run the generator, then always run `bun run quiz:validate`.

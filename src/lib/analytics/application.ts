@@ -1,0 +1,141 @@
+import type {
+  AnalyticsAnswerRecord,
+  AnalyticsReport,
+  KnowledgeTopicMap,
+  SubjectAnalytics,
+  TopicAnalytics,
+  TopicFallbackMap,
+} from "./types";
+
+type MutableTopic = Omit<TopicAnalytics, "accuracyPercent"> & {
+  attemptIds: Set<string>;
+};
+
+function percentage(correct: number, total: number) {
+  return total === 0 ? 0 : Math.round((correct / total) * 100);
+}
+
+function compareWeakness(left: TopicAnalytics, right: TopicAnalytics) {
+  if (right.incorrectCount !== left.incorrectCount) {
+    return right.incorrectCount - left.incorrectCount;
+  }
+  if (left.accuracyPercent !== right.accuracyPercent) {
+    return left.accuracyPercent - right.accuracyPercent;
+  }
+  return left.title.localeCompare(right.title, "vi");
+}
+
+export function buildAnalyticsReport(
+  records: AnalyticsAnswerRecord[],
+  knowledgeTopics: KnowledgeTopicMap,
+  fallbackTopicIds: TopicFallbackMap,
+  knowledgeErrors: string[] = [],
+): AnalyticsReport {
+  const topics = new Map<string, MutableTopic>();
+
+  for (const record of records) {
+    const topicId = record.topicId ?? fallbackTopicIds.get(`${record.quizId}:${record.questionId}`);
+    if (!topicId) continue;
+    const knowledge = knowledgeTopics.get(topicId);
+    if (!knowledge) continue;
+
+    let topic = topics.get(topicId);
+    if (!topic) {
+      topic = {
+        topicId,
+        subject: knowledge.subject,
+        subjectTitle: knowledge.subjectTitle,
+        title: knowledge.title,
+        correctCount: 0,
+        incorrectCount: 0,
+        unansweredCount: 0,
+        questionCount: 0,
+        mistakeExamples: [],
+        knowledgeMarkdown: knowledge.content,
+        attemptIds: new Set(),
+      };
+      topics.set(topicId, topic);
+    }
+
+    topic.questionCount += 1;
+    topic.attemptIds.add(record.attemptId);
+    if (record.selectedOptions.length === 0) {
+      topic.unansweredCount += 1;
+    } else if (record.isCorrect) {
+      topic.correctCount += 1;
+    } else {
+      topic.incorrectCount += 1;
+      if (!topic.mistakeExamples.includes(record.prompt) && topic.mistakeExamples.length < 3) {
+        topic.mistakeExamples.push(record.prompt);
+      }
+    }
+  }
+
+  const finalizedTopics = [...topics.values()].map((topic) => ({
+    topicId: topic.topicId,
+    subject: topic.subject,
+    subjectTitle: topic.subjectTitle,
+    title: topic.title,
+    correctCount: topic.correctCount,
+    incorrectCount: topic.incorrectCount,
+    unansweredCount: topic.unansweredCount,
+    questionCount: topic.questionCount,
+    accuracyPercent: percentage(topic.correctCount, topic.questionCount),
+    mistakeExamples: topic.mistakeExamples,
+    knowledgeMarkdown: topic.knowledgeMarkdown,
+  }));
+  // Knowledge files supply labels, not evidence that a user has studied a subject.
+  const subjectTitles = new Map(finalizedTopics.map((topic) => [topic.subject, topic.subjectTitle]));
+  const subjects: SubjectAnalytics[] = [];
+  for (const [subject, subjectTitle] of subjectTitles) {
+    const subjectTopics = finalizedTopics
+      .filter((topic) => topic.subject === subject)
+      .toSorted(compareWeakness);
+    const attemptIds = new Set<string>();
+    for (const topic of topics.values()) {
+      if (topic.subject === subject) topic.attemptIds.forEach((id) => attemptIds.add(id));
+    }
+    const totals = subjectTopics.reduce(
+      (sum, topic) => ({
+        correct: sum.correct + topic.correctCount,
+        incorrect: sum.incorrect + topic.incorrectCount,
+        unanswered: sum.unanswered + topic.unansweredCount,
+        questions: sum.questions + topic.questionCount,
+      }),
+      { correct: 0, incorrect: 0, unanswered: 0, questions: 0 },
+    );
+    subjects.push({
+      subject,
+      subjectTitle,
+      attemptCount: attemptIds.size,
+      correctCount: totals.correct,
+      incorrectCount: totals.incorrect,
+      unansweredCount: totals.unanswered,
+      questionCount: totals.questions,
+      accuracyPercent: percentage(totals.correct, totals.questions),
+      topics: subjectTopics,
+    });
+  }
+  subjects.sort((left, right) => right.incorrectCount - left.incorrectCount
+    || left.accuracyPercent - right.accuracyPercent
+    || left.subjectTitle.localeCompare(right.subjectTitle, "vi"));
+
+  const attemptIds = new Set<string>();
+  for (const topic of topics.values()) topic.attemptIds.forEach((id) => attemptIds.add(id));
+  const correctCount = subjects.reduce((sum, subject) => sum + subject.correctCount, 0);
+  const incorrectCount = subjects.reduce((sum, subject) => sum + subject.incorrectCount, 0);
+  const unansweredCount = subjects.reduce((sum, subject) => sum + subject.unansweredCount, 0);
+  const questionCount = correctCount + incorrectCount + unansweredCount;
+
+  return {
+    attemptCount: attemptIds.size,
+    correctCount,
+    incorrectCount,
+    unansweredCount,
+    questionCount,
+    accuracyPercent: percentage(correctCount, questionCount),
+    subjects,
+    weakTopics: finalizedTopics.filter((topic) => topic.incorrectCount > 0).toSorted(compareWeakness),
+    knowledgeErrors,
+  };
+}

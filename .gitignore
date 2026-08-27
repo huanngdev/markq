@@ -17,10 +17,10 @@
 /data/*.db
 /data/*.db-*
 
-# private source material and local quizzes
-/content/*-docs/
+# private authoring material and local quizzes
+/local/
+/content/knowledge/*.md
 /content/quizzes/*.md
-!/content/quizzes/example-quiz.md
 
 # misc
 .DS_Store

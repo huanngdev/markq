@@ -46,11 +46,22 @@ describe("parseQuizMarkdown", () => {
     expect(quiz.questions).toHaveLength(1);
     expect(quiz.questions[0]).toMatchObject({
       id: "q1",
-      correctOption: "B",
+      topicId: null,
+      correctOptions: ["B"],
+      selectionMode: "single",
+      points: 1,
       options: [
         { id: "A", content: "One" },
         { id: "B", content: "Two" },
       ],
+    });
+    expect(quiz).toMatchObject({
+      schemaVersion: 1,
+      visibility: "public",
+      settings: {
+        timeLimitMinutes: null,
+        scoringMode: "exact",
+      },
     });
   });
 
@@ -82,8 +93,57 @@ describe("parseQuizMarkdown", () => {
     const publicQuiz = toPublicQuiz(parseQuizMarkdown(validQuiz));
     const question = publicQuiz.questions[0] as unknown as Record<string, unknown>;
 
-    expect(question.correctOption).toBeUndefined();
+    expect(question.correctOptions).toBeUndefined();
     expect(question.explanation).toBeUndefined();
+  });
+
+  it("parses versioned settings, multiple answers, and question points", () => {
+    const versionedQuiz = validQuiz
+      .replace("id: sample-quiz", `schemaVersion: 2\nid: sample-quiz`)
+      .replace("published: true", `published: true\nvisibility: unlisted\nsettings:\n  timeLimitMinutes: 30\n  shuffleQuestions: true\n  shuffleOptions: true\n  navigationMode: sequential\n  allowUnanswered: false\n  reviewMode: never\n  passingScore: 70\n  expireBehavior: mark-expired\n  scoringMode: partial\n  incorrectPenalty: 0.25\n  attemptsAllowed: 2`)
+      .replace("\nB\n\n### Explanation", "\n- A\n- B\n\n### Topic\n\njavascript-types\n\n### Points\n\n2.5\n\n### Explanation");
+
+    const quiz = parseQuizMarkdown(versionedQuiz);
+
+    expect(quiz.schemaVersion).toBe(2);
+    expect(quiz.visibility).toBe("unlisted");
+    expect(quiz.settings).toEqual({
+      timeLimitMinutes: 30,
+      shuffleQuestions: true,
+      shuffleOptions: true,
+      navigationMode: "sequential",
+      allowUnanswered: false,
+      reviewMode: "never",
+      passingScore: 70,
+      expireBehavior: "mark-expired",
+      scoringMode: "partial",
+      incorrectPenalty: 0.25,
+      attemptsAllowed: 2,
+    });
+    expect(quiz.questions[0]).toMatchObject({
+      correctOptions: ["A", "B"],
+      topicId: "javascript-types",
+      selectionMode: "multiple",
+      points: 2.5,
+    });
+  });
+
+  it("rejects duplicate and malformed multiple answers", () => {
+    const duplicate = validQuiz.replace("\nB\n\n### Explanation", "\n- A\n- A\n\n### Explanation");
+    const malformed = validQuiz.replace("\nB\n\n### Explanation", "\nA, B\n\n### Explanation");
+
+    expect(() => parseQuizMarkdown(duplicate)).toThrow(/unique/);
+    expect(() => parseQuizMarkdown(malformed)).toThrow(/does not exist|option ID/);
+  });
+
+  it("rejects non-positive question points", () => {
+    const invalid = validQuiz.replace("\n### Explanation", "\n### Points\n\n0\n\n### Explanation");
+    expect(() => parseQuizMarkdown(invalid)).toThrow(/positive number/);
+  });
+
+  it("rejects malformed topic IDs", () => {
+    const invalid = validQuiz.replace("\n### Explanation", "\n### Topic\n\nNot a topic\n\n### Explanation");
+    expect(() => parseQuizMarkdown(invalid)).toThrow(/topic ID must use kebab-case/);
   });
 
   it("rewrites relative images without touching code blocks or remote images", () => {

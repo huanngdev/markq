@@ -1,0 +1,1 @@
+ALTER TABLE `attempt_answers` ADD `topic_id` text DEFAULT '' NOT NULL;
