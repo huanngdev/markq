@@ -84,7 +84,8 @@ export function buildAnalyticsReport(
     mistakeExamples: topic.mistakeExamples,
     knowledgeMarkdown: topic.knowledgeMarkdown,
   }));
-  const subjectTitles = new Map([...knowledgeTopics.values()].map((topic) => [topic.subject, topic.subjectTitle]));
+  // Knowledge files supply labels, not evidence that a user has studied a subject.
+  const subjectTitles = new Map(finalizedTopics.map((topic) => [topic.subject, topic.subjectTitle]));
   const subjects: SubjectAnalytics[] = [];
   for (const [subject, subjectTitle] of subjectTitles) {
     const subjectTopics = finalizedTopics
@@ -115,7 +116,9 @@ export function buildAnalyticsReport(
       topics: subjectTopics,
     });
   }
-  subjects.sort((left, right) => left.subjectTitle.localeCompare(right.subjectTitle));
+  subjects.sort((left, right) => right.incorrectCount - left.incorrectCount
+    || left.accuracyPercent - right.accuracyPercent
+    || left.subjectTitle.localeCompare(right.subjectTitle, "vi"));
 
   const attemptIds = new Set<string>();
   for (const topic of topics.values()) topic.attemptIds.forEach((id) => attemptIds.add(id));

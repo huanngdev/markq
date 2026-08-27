@@ -79,7 +79,9 @@ B
 The union is {1, 2, 3}, which contains three distinct elements.
 ```
 
-Run `bun run quiz:validate`, take the quiz, and submit it. Analytics adds **Discrete Mathematics** automatically. Incorrect answers create a **Union of sets** knowledge card, which opens the full lesson in its own page. The subject filter also applies to overview totals. Subjects with lessons but no completed answers have an empty state.
+Run `bun run quiz:validate`, take the quiz, and submit it. Analytics adds **Discrete Mathematics** automatically. The **Union of sets** row opens the full lesson in its own page. Subjects appear only when the current guest has submitted/expired answers linked to their topics in SQLite; knowledge files alone never create a subject filter. With no linked results, Analytics shows only an empty state.
+
+The subject filter applies to totals, charts, and the table together. A donut chart shows correct/incorrect/unanswered counts, and a horizontal bar chart ranks up to eight topics with incorrect answers. The TanStack Table uses shadcn Table components, includes all studied topics (even those with zero mistakes), and paginates ten rows at a time. Rows sort by incorrect count descending, accuracy ascending, then topic title, before pagination.
 
 ## How results are counted
 
@@ -106,8 +108,8 @@ The bundled `markq-quiz-author` skill routes here whenever authoring analytics-l
 
 ## Troubleshooting
 
-- **No subject filter:** check the knowledge frontmatter, filename extension and validator output. Quiz tags alone do not define a subject.
-- **No knowledge card:** complete an attempt with a linked incorrect answer. Correct-only or unanswered-only topics do not create weak-topic cards.
+- **No subject filter:** first complete an attempt with linked topics in this browser/profile, then check the knowledge frontmatter, filename extension and validator output. Quiz tags or knowledge files alone do not create a filter.
+- **No topic row:** complete an attempt with a question linked to that knowledge topic. Correct-only and unanswered-only topics appear in the table but not in the mistake chart.
 - **Unknown filter URL:** the view falls back to All; invalid identifiers are normalized before navigation.
 - **Conflicting labels:** give every document with the same `subject` the same resolved `subjectTitle`.
 - **Content absent after cloning:** ignored local files are intentionally not published. Add your own content using the examples above.

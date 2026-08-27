@@ -28,7 +28,7 @@ const report = buildAnalyticsReport(
 );
 
 describe("catalog Analytics and knowledge navigation", () => {
-  it("renders a custom subject throughout filters, cards and lessons without English/IQ assumptions", () => {
+  it("renders a custom subject throughout filters, table and lessons without English/IQ assumptions", () => {
     const topic: KnowledgeTopic = {
       id: "networks-routing", subject: "computer-networks", subjectTitle: "Mạng máy tính",
       title: "Định tuyến", content: "### Nguyên lý\n\nA complete routing lesson.", sourceFile: "networks.md",
@@ -83,10 +83,16 @@ describe("catalog Analytics and knowledge navigation", () => {
     expect(html).not.toContain("Primary navigation");
   });
 
-  it("renders full-card lesson links in the quiz grid style, not inline lessons", () => {
+  it("renders charts and a ranked TanStack table with lesson links, not lesson cards", () => {
     const html = renderToStaticMarkup(<AnalyticsView report={report} filter="all" />);
-    expect(html).toContain("grid gap-4 md:grid-cols-2 lg:grid-cols-3");
-    expect(html).toContain("min-h-64");
+    expect(html).toContain("<table");
+    expect(html).toContain('aria-sort="descending"');
+    expect(html).toContain("Answer outcomes");
+    expect(html).toContain("Most frequent mistakes");
+    expect(html.match(/data-slot="chart"/g)).toHaveLength(2);
+    expect(html).not.toContain("min-h-64");
+    expect(html).not.toContain('role="slider"');
+    expect(html).not.toContain("Find the topics you miss most");
     for (const topic of [english, iq]) {
       expect(html).toContain(`href="/knowledge/${topic.id}?subject=all"`);
       expect(html).toContain(`aria-label="Review ${topic.title}"`);
@@ -117,12 +123,29 @@ describe("catalog Analytics and knowledge navigation", () => {
   });
 
   it("supports empty analytics and lessons without any attempts", () => {
-    const empty = buildAnalyticsReport([], new Map(), new Map());
+    const empty = buildAnalyticsReport([], new Map([[iq.id, iq]]), new Map());
     const html = renderToStaticMarkup(<AnalyticsView report={empty} filter="all" />);
     expect(html).toContain("No analytics yet");
     expect(html).not.toContain("Knowledge review");
+    expect(html).not.toContain('aria-label="Analytics subject"');
+    expect(html).not.toContain("IQ");
+    expect(html).not.toContain('data-slot="chart"');
     const lesson = renderToStaticMarkup(<KnowledgeLessonView topic={iq} stats={undefined} filter="all" />);
     expect(lesson).toContain("Pair the first and last terms.");
     expect(lesson).not.toContain("Questions you missed");
+  });
+
+  it("keeps correct-only and unanswered-only topics in the table without inventing mistakes", () => {
+    for (const selectedOptions of [["A"], []]) {
+      const clean = buildAnalyticsReport([{
+        attemptId: "clean", quizId: "quiz", questionId: "one", prompt: "Question", topicId: iq.id,
+        selectedOptions, isCorrect: selectedOptions.length > 0,
+      }], new Map([[iq.id, iq]]), new Map());
+      const html = renderToStaticMarkup(<AnalyticsView report={clean} filter="iq" />);
+      expect(html).toContain("No incorrect answers in this view");
+      expect(html).toContain(`href="/knowledge/${iq.id}?subject=iq"`);
+      expect(html).toContain("<table");
+      expect(html).not.toContain("currently correct");
+    }
   });
 });

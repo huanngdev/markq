@@ -30,13 +30,12 @@ describe("buildAnalyticsReport", () => {
       { attemptId: "ignored", quizId: "unlinked-quiz", questionId: "four", prompt: "Unlinked", topicId: null, selectedOptions: ["B"], isCorrect: false },
     ], new Map(topics.map((item) => [item.id, item])), new Map());
     expect(report).toMatchObject({ attemptCount: 2, questionCount: 3, correctCount: 1, incorrectCount: 1, unansweredCount: 1, accuracyPercent: 33 });
-    expect(report.subjects).toHaveLength(3);
+    expect(report.subjects).toHaveLength(2);
     expect(report.subjects.find((subject) => subject.subject === "computer-networks")).toMatchObject({
       subjectTitle: "Mạng máy tính", attemptCount: 2, questionCount: 2, incorrectCount: 1, unansweredCount: 1,
     });
-    expect(report.subjects.find((subject) => subject.subject === "discrete-math")).toMatchObject({
-      questionCount: 0, attemptCount: 0, accuracyPercent: 0,
-    });
+    expect(report.subjects.find((subject) => subject.subject === "discrete-math")).toBeUndefined();
+    expect(report.subjects.map((subject) => subject.subject)).toEqual(["computer-networks", "english"]);
     expect(report.weakTopics.map((item) => item.topicId)).toEqual(["networks-routing"]);
     expect(report.subjects.some((subject) => subject.subject === "iq")).toBe(false);
   });
@@ -45,6 +44,14 @@ describe("buildAnalyticsReport", () => {
     const report = buildAnalyticsReport([], new Map(), new Map());
     expect(report.subjects).toEqual([]);
     expect(report).toMatchObject({ attemptCount: 0, questionCount: 0, accuracyPercent: 0 });
+  });
+
+  it("does not invent subjects from knowledge files when the user has no results", () => {
+    const iq = { ...topic, id: "iq-sequences", subject: "iq", subjectTitle: "IQ" };
+    const report = buildAnalyticsReport([], new Map([[iq.id, iq], [topic.id, topic]]), new Map());
+    expect(report.subjects).toEqual([]);
+    expect(report.weakTopics).toEqual([]);
+    expect(report.questionCount).toBe(0);
   });
 
   it("ranks mistakes, separates unanswered answers, and supports legacy topic fallback", () => {

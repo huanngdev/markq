@@ -59,6 +59,8 @@ bun run dev
 
 Open [http://localhost:3000](http://localhost:3000). MarkQ also applies missing migrations automatically when the database is first opened.
 
+The quiz catalog starts empty. Add your own Markdown files to `content/quizzes/`, or copy the optional [example](docs/examples/example-quiz.md) there to try the app.
+
 ## Create a quiz from Markdown
 
 Create a file such as `content/quizzes/javascript-basics.md`:
@@ -122,7 +124,7 @@ Validate every quiz before running or deploying:
 bun run quiz:validate
 ```
 
-The repository includes a working [example quiz](content/quizzes/example-quiz.md) and the complete [quiz format reference](.agents/skills/markq-quiz-author/references/format.md).
+The repository includes an optional [example quiz](docs/examples/example-quiz.md) outside the active catalog and the complete [quiz format reference](.agents/skills/markq-quiz-author/references/format.md). An empty catalog is valid; the validator still checks all knowledge files.
 
 ### Format rules
 
@@ -137,7 +139,7 @@ The repository includes a working [example quiz](content/quizzes/example-quiz.md
 
 ### Keeping private quizzes out of Git
 
-MarkQ ignores every `content/quizzes/*.md` file except the public `example-quiz.md`. Your local quizzes therefore stay private by default.
+MarkQ ignores every `content/quizzes/*.md` file. Your local quizzes therefore stay private by default; reusable public examples live under `docs/examples/` instead.
 
 To publish a quiz with your fork, add an allow rule to `.gitignore`:
 
@@ -152,34 +154,34 @@ is never required by the app. Generated quiz files still go in
 
 ## Analytics and knowledge articles
 
-The home page has one tab row: **Available**, **Completed**, and **Analytics**. Analytics summarizes completed attempts for the current guest session. Subjects are discovered from your knowledge files, so any quiz domain works without changing application code. It ranks topics by incorrect answers and accuracy; unanswered questions are tracked separately from incorrect answers.
+The home page has one tab row: **Available**, **Completed**, and **Analytics**. Analytics summarizes submitted/expired attempts from SQLite for the current guest session. Subject filters appear only for linked results that guest actually has; knowledge files supply subject names and lessons, not placeholder data. Any quiz domain works without changing application code. Unanswered questions are tracked separately from incorrect answers.
 
-**Knowledge review** displays weak topics as cards like the quiz catalog. Click a card to open the full lesson and missed-question examples on its own page, then use **Back to Analytics** to return to the same subject filter. Completed quizzes and their review links are available in **Completed**; there is no separate History page.
+Analytics uses shadcn donut/bar charts and a paginated **Knowledge review** TanStack Table. Topics sort from most incorrect answers to fewest, then by lower accuracy and title. Click a topic to open the full lesson and missed-question examples, then use **Back to Analytics** to return to the same subject filter. Completed quizzes and their review links remain in **Completed**; there is no separate History page.
 
 To add review material, create a Markdown file in `content/knowledge/`:
 
 ```md
 ---
-subject: english
-subjectTitle: English
-title: English knowledge base
-description: Grammar and vocabulary lessons.
+subject: discrete-math
+subjectTitle: Discrete Mathematics
+title: Sets and counting
+description: Principles, examples, and common mistakes.
 ---
 
-## english-second-conditional | Second conditional
+## discrete-math-union | Union of sets
 
-Use the second conditional for unreal or unlikely present and future situations.
+The union contains every distinct element found in either set.
 
-**Form:** `If + past simple, would + base verb`.
+**Formula:** `|A ∪ B| = |A| + |B| − |A ∩ B|`.
 
 ### Example
 
-If I had more time, I would study another language.
+For A = {1, 2} and B = {2, 3}, A ∪ B = {1, 2, 3}.
 ```
 
 The text before `|` must exactly match a question's `Topic`; the text after it is the display title. `subject` is any kebab-case ID except the reserved `all`; `subjectTitle` is its optional display name. Article bodies support Markdown and can include formulas, reasoning, hints, examples, and common mistakes. Run `bun run quiz:validate` to catch missing/duplicate topic references and conflicting subject names.
 
-See [Analytics authoring guide](docs/ANALYTICS.md) for a complete custom-subject example, scoring semantics, troubleshooting, and a reusable agent workflow. English and IQ are examples, not built-in restrictions.
+See [Analytics authoring guide](docs/ANALYTICS.md) for a complete custom-subject example, scoring semantics, troubleshooting, and a reusable agent workflow. Subjects are not restricted to a built-in list.
 
 Like private quizzes, `content/knowledge/*.md` is ignored by Git by default. Add an explicit allow rule only when you intend to publish a knowledge file.
 

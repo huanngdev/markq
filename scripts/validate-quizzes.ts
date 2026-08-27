@@ -36,8 +36,7 @@ if (!fs.existsSync(directory)) {
   }
 
   if (files.length === 0) {
-    failed = true;
-    console.error("No .md files were found in content/quizzes.");
+    console.log("No quizzes to validate: content/quizzes is empty.");
   }
 
   const knowledgeTopics = new Map<string, KnowledgeTopic>();
