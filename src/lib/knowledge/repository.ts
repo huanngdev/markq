@@ -5,7 +5,11 @@ import path from "node:path";
 
 import { validateKnowledgeDocument } from "./catalog-validation";
 import { KnowledgeFormatError, parseKnowledgeMarkdown } from "./parser";
-import type { KnowledgeDocument, KnowledgeTopic } from "./types";
+import type {
+  KnowledgeDocument,
+  KnowledgeDocumentSummary,
+  KnowledgeTopic,
+} from "./types";
 
 const knowledgeDirectory = path.join(process.cwd(), "content", "knowledge");
 
@@ -44,4 +48,14 @@ export function readKnowledgeCatalog(): KnowledgeCatalog {
   }
 
   return { documents, topics, errors };
+}
+
+export function toKnowledgeDocumentSummary(document: KnowledgeDocument): KnowledgeDocumentSummary {
+  return {
+    subject: document.subject,
+    subjectTitle: document.subjectTitle,
+    title: document.title,
+    description: document.description,
+    topicCount: document.topics.length,
+  };
 }

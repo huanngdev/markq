@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
 import { analyticsSubjectFrom } from "@/features/catalog/navigation";
+import { KnowledgeDocumentView } from "@/features/knowledge/components/knowledge-document-view";
 import { KnowledgeLessonView } from "@/features/knowledge/components/knowledge-lesson-view";
 import { getOwnedAnalyticsReport } from "@/lib/analytics/server-analytics-service";
 import { getSessionUserId } from "@/lib/auth/session";
@@ -18,11 +19,16 @@ export default async function KnowledgePage({ params, searchParams }: {
   searchParams: Promise<{ subject?: string | string[] }>;
 }) {
   await connection();
-  const [{ topicId }, { subject }, userId] = await Promise.all([params, searchParams, getSessionUserId()]);
+  const [{ topicId }, { subject }] = await Promise.all([params, searchParams]);
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(topicId)) notFound();
-  const topic = readKnowledgeCatalog().topics.get(topicId);
+  const catalog = readKnowledgeCatalog();
+  const document = catalog.documents.find((item) => item.subject === topicId);
+  if (document) return <KnowledgeDocumentView document={document} />;
+
+  const topic = catalog.topics.get(topicId);
   if (!topic) notFound();
 
+  const userId = await getSessionUserId();
   const report = userId ? getOwnedAnalyticsReport(userId) : null;
   const stats = report?.subjects.find((item) => item.subject === topic.subject)?.topics.find((item) => item.topicId === topicId);
   return <KnowledgeLessonView topic={topic} stats={stats} filter={analyticsSubjectFrom(subject)} />;

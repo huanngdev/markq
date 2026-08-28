@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { QuizCatalogView } from "@/features/catalog/components/quiz-catalog-view";
 import { KnowledgeLessonView } from "@/features/knowledge/components/knowledge-lesson-view";
 import { buildAnalyticsReport } from "@/lib/analytics/application";
-import type { KnowledgeTopic } from "@/lib/knowledge/types";
+import type { KnowledgeDocumentSummary, KnowledgeTopic } from "@/lib/knowledge/types";
 import { defaultQuizSettings, type QuizSummary } from "@/lib/quizzes/types";
 
 import { AnalyticsView } from "./analytics-view";
@@ -69,18 +69,33 @@ describe("catalog Analytics and knowledge navigation", () => {
     }
   });
 
-  it("renders Analytics in the same tablist as Available and Completed, without History", () => {
+  it("renders Analytics and Knowledge in the same tablist as quiz statuses, without History", () => {
     const html = renderToStaticMarkup(
       <QuizCatalogView quizzes={[]} stats={{}} tab="analytics" errors={[]} onTabChange={() => {}}
         analytics={<AnalyticsView report={report} filter="all" />} />,
     );
     expect(html.match(/role="tablist"/g)).toHaveLength(1);
-    expect(html.match(/role="tab"/g)).toHaveLength(3);
-    expect(html).toMatch(/role="tablist"[\s\S]*Available[\s\S]*Completed[\s\S]*Analytics/);
+    expect(html.match(/role="tab"/g)).toHaveLength(4);
+    expect(html).toMatch(/role="tablist"[\s\S]*Available[\s\S]*Completed[\s\S]*Analytics[\s\S]*Knowledge/);
     expect(html).toMatch(/<button[^>]*aria-selected="true"[^>]*>Analytics<\/button>/);
     expect(html).toContain("Knowledge review");
     expect(html).not.toContain("History");
     expect(html).not.toContain("Primary navigation");
+  });
+
+  it("renders Markdown knowledge guides as cards with document routes", () => {
+    const knowledge: KnowledgeDocumentSummary[] = [{
+      subject: "iq", subjectTitle: "IQ", title: "Kiến thức IQ EVN",
+      description: "Công thức và phương pháp suy luận.", topicCount: 29,
+    }];
+    const html = renderToStaticMarkup(
+      <QuizCatalogView quizzes={[]} stats={{}} knowledge={knowledge} tab="knowledge" errors={[]}
+        onTabChange={() => {}} analytics={null} />,
+    );
+    expect(html).toContain("Kiến thức IQ EVN");
+    expect(html).toContain("29 topics");
+    expect(html).toContain('href="/knowledge/iq"');
+    expect(html).not.toContain("No knowledge guides available");
   });
 
   it("renders charts and a ranked TanStack table with lesson links, not lesson cards", () => {

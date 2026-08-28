@@ -8,6 +8,7 @@ import { analyticsSubjectFrom, catalogTabFrom } from "@/features/catalog/navigat
 import { getOwnedAnalyticsReport } from "@/lib/analytics/server-analytics-service";
 import { getOwnedQuizAttemptStats } from "@/lib/attempts/server-attempt-service";
 import { getSessionUserId } from "@/lib/auth/session";
+import { readKnowledgeCatalog, toKnowledgeDocumentSummary } from "@/lib/knowledge/repository";
 import { getPublicQuizCatalog } from "@/lib/quizzes/repository";
 import { toQuizSummary } from "@/lib/quizzes/types";
 
@@ -19,7 +20,9 @@ export async function generateMetadata({ searchParams }: HomePageProps): Promise
   const tab = catalogTabFrom((await searchParams).status);
   if (tab === "available") return {};
   return {
-    title: tab === "analytics" ? "Analytics" : "Completed quizzes",
+    title: tab === "analytics"
+      ? "Analytics"
+      : tab === "knowledge" ? "Knowledge" : "Completed quizzes",
     robots: { index: false, follow: false },
   };
 }
@@ -29,6 +32,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const [{ status, subject }, userId] = await Promise.all([searchParams, getSessionUserId()]);
   const tab = catalogTabFrom(status);
   const catalog = getPublicQuizCatalog();
+  const knowledgeCatalog = readKnowledgeCatalog();
   const quizzes = catalog.quizzes.map(toQuizSummary);
   const stats = userId ? getOwnedQuizAttemptStats(userId) : {};
 
@@ -46,6 +50,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <QuizCatalog
         quizzes={quizzes}
         stats={stats}
+        knowledge={knowledgeCatalog.documents.map(toKnowledgeDocumentSummary)}
         initialTab={tab}
         analytics={tab === "analytics" ? (
           <AnalyticsView
@@ -57,6 +62,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         errors={
           process.env.NODE_ENV === "development"
             ? catalog.errors.map((error) => error.message)
+            : []
+        }
+        knowledgeErrors={
+          process.env.NODE_ENV === "development"
+            ? knowledgeCatalog.errors.map((error) => error.message)
             : []
         }
       />

@@ -1,11 +1,13 @@
 import type { KnowledgeSubject } from "@/lib/knowledge/types";
 import { isKnowledgeSubject } from "@/lib/knowledge/subject";
 
-export type CatalogTab = "available" | "completed" | "analytics";
+export type CatalogTab = "available" | "completed" | "analytics" | "knowledge";
 export type AnalyticsSubject = "all" | KnowledgeSubject;
 
 export function catalogTabFrom(value: unknown): CatalogTab {
-  return value === "completed" || value === "analytics" ? value : "available";
+  return value === "completed" || value === "analytics" || value === "knowledge"
+    ? value
+    : "available";
 }
 
 export function analyticsSubjectFrom(value: unknown): AnalyticsSubject {
@@ -17,5 +19,6 @@ export function catalogHref(tab: CatalogTab, subject: AnalyticsSubject = "all"):
     case "available": return "/";
     case "completed": return "/?status=completed";
     case "analytics": return subject === "all" ? "/?status=analytics" : `/?status=analytics&subject=${subject}`;
+    case "knowledge": return "/?status=knowledge";
   }
 }

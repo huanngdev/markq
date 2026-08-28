@@ -17,3 +17,11 @@ export type KnowledgeDocument = {
   topics: KnowledgeTopic[];
   sourceFile: string;
 };
+
+export type KnowledgeDocumentSummary = {
+  subject: KnowledgeSubject;
+  subjectTitle: string;
+  title: string;
+  description: string;
+  topicCount: number;
+};

@@ -6,15 +6,17 @@ import AttemptsPage from "@/app/attempts/page";
 import { analyticsSubjectFrom, catalogHref, catalogTabFrom } from "./navigation";
 
 describe("catalog navigation", () => {
-  it("normalizes URL values and links all three tabs to the catalog", () => {
+  it("normalizes URL values and links all catalog tabs", () => {
     for (const value of [undefined, "history", ["analytics"]]) {
       expect(catalogTabFrom(value)).toBe("available");
     }
     expect(catalogTabFrom("completed")).toBe("completed");
     expect(catalogTabFrom("analytics")).toBe("analytics");
+    expect(catalogTabFrom("knowledge")).toBe("knowledge");
     expect(catalogHref("available")).toBe("/");
     expect(catalogHref("completed")).toBe("/?status=completed");
     expect(catalogHref("analytics")).toBe("/?status=analytics");
+    expect(catalogHref("knowledge")).toBe("/?status=knowledge");
     for (const subject of ["english", "iq", "computer-networks"] as const) {
       expect(analyticsSubjectFrom(subject)).toBe(subject);
       expect(catalogHref("analytics", subject)).toBe(`/?status=analytics&subject=${subject}`);

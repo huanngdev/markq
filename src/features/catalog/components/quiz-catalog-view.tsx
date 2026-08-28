@@ -12,6 +12,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CatalogTab } from "@/features/catalog/navigation";
 import type { QuizAttemptStat } from "@/lib/attempts/types";
+import type { KnowledgeDocumentSummary } from "@/lib/knowledge/types";
 import type { QuizSummary } from "@/lib/quizzes/types";
 
 function QuizGrid({ quizzes, stats, completed }: {
@@ -71,11 +72,63 @@ function QuizGrid({ quizzes, stats, completed }: {
   );
 }
 
-export function QuizCatalogView({ quizzes, stats, tab, errors, analytics, onTabChange }: {
+function KnowledgeGrid({ documents, errors }: {
+  documents: KnowledgeDocumentSummary[];
+  errors: string[];
+}) {
+  return (
+    <div className="flex flex-col gap-6">
+      {documents.length === 0 ? (
+        <Empty className="min-h-64 border">
+          <EmptyHeader>
+            <EmptyMedia variant="icon"><BookOpen aria-hidden="true" /></EmptyMedia>
+            <EmptyTitle>No knowledge guides available</EmptyTitle>
+            <EmptyDescription>Add a valid Markdown guide to content/knowledge.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {documents.map((document) => (
+            <Card key={document.subject} className="min-h-64 transition-shadow hover:shadow-md">
+              <CardHeader>
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  <Badge variant="secondary">{document.subjectTitle}</Badge>
+                  <Badge variant="outline">{document.topicCount} topics</Badge>
+                </div>
+                <CardTitle className="text-lg text-pretty"><h2>{document.title}</h2></CardTitle>
+                <CardDescription className="line-clamp-3">
+                  {document.description || "A Markdown study guide with explanations and examples."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="mt-auto text-sm text-muted-foreground">
+                <p>Markdown study guide</p>
+              </CardContent>
+              <CardFooter className="justify-end">
+                <Link href={`/knowledge/${document.subject}`} className={buttonVariants({ size: "sm" })}>
+                  Study <ArrowRight aria-hidden="true" />
+                </Link>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+      {errors.length > 0 ? (
+        <Alert variant="destructive">
+          <AlertTitle>{errors.length} knowledge files were skipped</AlertTitle>
+          <AlertDescription><ul className="list-disc pl-5">{errors.map((error) => <li key={error}>{error}</li>)}</ul></AlertDescription>
+        </Alert>
+      ) : null}
+    </div>
+  );
+}
+
+export function QuizCatalogView({ quizzes, stats, knowledge = [], tab, errors, knowledgeErrors = [], analytics, onTabChange }: {
   quizzes: QuizSummary[];
   stats: Record<string, QuizAttemptStat>;
+  knowledge?: KnowledgeDocumentSummary[];
   tab: CatalogTab;
   errors: string[];
+  knowledgeErrors?: string[];
   analytics: ReactNode;
   onTabChange(value: string): void;
 }) {
@@ -84,14 +137,16 @@ export function QuizCatalogView({ quizzes, stats, tab, errors, analytics, onTabC
   return (
     <>
       <Tabs value={tab} onValueChange={onTabChange}>
-        <TabsList aria-label="Quiz catalog" className="mb-5 h-10 w-full sm:w-auto">
+        <TabsList aria-label="MarkQ catalog" className="mb-5 h-auto w-full flex-wrap sm:w-auto">
           <TabsTrigger value="available" className="px-2 sm:px-4">Available <Badge variant="secondary">{available.length}</Badge></TabsTrigger>
           <TabsTrigger value="completed" className="px-2 sm:px-4">Completed <Badge variant="secondary">{completed.length}</Badge></TabsTrigger>
           <TabsTrigger value="analytics" className="px-2 sm:px-4">Analytics</TabsTrigger>
+          <TabsTrigger value="knowledge" className="px-2 sm:px-4">Knowledge <Badge variant="secondary">{knowledge.length}</Badge></TabsTrigger>
         </TabsList>
         <TabsContent value="available"><QuizGrid quizzes={available} stats={stats} completed={false} /></TabsContent>
         <TabsContent value="completed"><QuizGrid quizzes={completed} stats={stats} completed /></TabsContent>
         <TabsContent value="analytics">{analytics}</TabsContent>
+        <TabsContent value="knowledge"><KnowledgeGrid documents={knowledge} errors={knowledgeErrors} /></TabsContent>
       </Tabs>
       {errors.length > 0 ? (
         <Alert variant="destructive" className="mt-6"><AlertTitle>{errors.length} quiz files were skipped</AlertTitle><AlertDescription><ul className="list-disc pl-5">{errors.map((error) => <li key={error}>{error}</li>)}</ul></AlertDescription></Alert>
