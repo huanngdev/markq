@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 
 import { Markdown } from "@/components/markdown";
+import { QuestionChat } from "@/components/question-chat";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -135,8 +136,8 @@ export function AttemptReviewView({
           </Card>
 
           <Card className="h-full min-h-0 gap-0 py-0">
-            <CardContent className="flex h-full min-h-0 flex-col overflow-y-auto p-4 sm:p-5">
-              <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
+            <CardContent className="flex h-full min-h-0 flex-col overflow-hidden p-0">
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 p-4 pb-3 sm:px-5">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium tabular-nums">Question {viewModel.currentIndex + 1} of {attempt.totalQuestions}</span>
                   <Badge variant="outline">{currentAnswer.earnedPoints}/{currentAnswer.points} pts</Badge>
@@ -155,40 +156,54 @@ export function AttemptReviewView({
                 </div>
               </div>
 
-              <section className="shrink-0" aria-labelledby="review-question-heading">
-                <h2 id="review-question-heading" className="sr-only">Review question {viewModel.currentIndex + 1}</h2>
-                <Markdown content={currentAnswer.prompt} className="w-full text-base font-medium sm:text-lg" />
-              </section>
+              <div className="grid min-h-0 flex-1 overflow-y-auto xl:grid-cols-2 xl:overflow-hidden">
+                <div className="min-w-0 p-4 pt-0 sm:px-5 xl:overflow-y-auto">
+                  <section className="shrink-0" aria-labelledby="review-question-heading">
+                    <h2 id="review-question-heading" className="sr-only">Review question {viewModel.currentIndex + 1}</h2>
+                    <Markdown content={currentAnswer.prompt} className="w-full text-base font-medium sm:text-lg" />
+                  </section>
 
-              <div className="mt-3 grid shrink-0 gap-2 sm:grid-cols-2" aria-label="Answer options and results">
-                {currentAnswer.options.map((option) => {
-                  const isCorrect = currentAnswer.correctOptions.includes(option.id);
-                  const isSelected = currentAnswer.selectedOptions.includes(option.id);
-                  return (
-                    <div key={option.id} className={cn(
-                      "flex min-h-16 items-center gap-3 rounded-lg border bg-card p-4",
-                      isCorrect && "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100",
-                      isSelected && !isCorrect && "border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100",
-                    )}>
-                      <span className={cn(
-                        "grid size-8 shrink-0 place-items-center rounded-md bg-muted text-sm font-semibold",
-                        isCorrect && "bg-emerald-600 text-white",
-                        isSelected && !isCorrect && "bg-red-600 text-white",
-                      )}>{option.id}</span>
-                      <Markdown content={option.content} className="min-w-0 flex-1" />
-                      <span className="ml-auto flex shrink-0 items-center gap-1 text-xs font-medium">
-                        {isCorrect ? <><Check aria-hidden="true" /> Correct</> : null}
-                        {isSelected && !isCorrect ? <><X aria-hidden="true" /> Yours</> : null}
-                      </span>
-                    </div>
-                  );
-                })}
+                  <div className="mt-3 grid shrink-0 gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2" aria-label="Answer options and results">
+                    {currentAnswer.options.map((option) => {
+                      const isCorrect = currentAnswer.correctOptions.includes(option.id);
+                      const isSelected = currentAnswer.selectedOptions.includes(option.id);
+                      return (
+                        <div key={option.id} className={cn(
+                          "flex min-h-16 items-center gap-3 rounded-lg border bg-card p-4",
+                          isCorrect && "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100",
+                          isSelected && !isCorrect && "border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100",
+                        )}>
+                          <span className={cn(
+                            "grid size-8 shrink-0 place-items-center rounded-md bg-muted text-sm font-semibold",
+                            isCorrect && "bg-emerald-600 text-white",
+                            isSelected && !isCorrect && "bg-red-600 text-white",
+                          )}>{option.id}</span>
+                          <Markdown content={option.content} className="min-w-0 flex-1" />
+                          <span className="ml-auto flex shrink-0 items-center gap-1 text-xs font-medium">
+                            {isCorrect ? <><Check aria-hidden="true" /> Correct</> : null}
+                            {isSelected && !isCorrect ? <><X aria-hidden="true" /> Yours</> : null}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <section className="mt-3 shrink-0 rounded-lg border bg-muted/40 p-4" aria-labelledby="explanation-heading">
+                    <h2 id="explanation-heading" className="mb-2 text-sm font-medium">Explanation</h2>
+                    <Markdown content={currentAnswer.explanation} />
+                  </section>
+                </div>
+
+                <QuestionChat
+                  className="border-t xl:h-full xl:border-l xl:border-t-0"
+                  context={{
+                    attemptId: attempt.id,
+                    questionId: currentAnswer.questionId,
+                    mode: "review",
+                    selectedOptions: currentAnswer.selectedOptions,
+                  }}
+                />
               </div>
-
-              <section className="mt-3 shrink-0 rounded-lg border bg-muted/40 p-4" aria-labelledby="explanation-heading">
-                <h2 id="explanation-heading" className="mb-2 text-sm font-medium">Explanation</h2>
-                <Markdown content={currentAnswer.explanation} />
-              </section>
             </CardContent>
           </Card>
         </div>

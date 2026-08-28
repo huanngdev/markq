@@ -31,6 +31,7 @@ MarkQ is an open-source **Markdown quiz generator** built with Next.js, shadcn/u
 - Analytics by subject and topic, including weak-topic ranking, missed-question examples, and linked review lessons.
 - Attempt history with quiz snapshots, so old reviews remain accurate after a quiz changes.
 - Dark mode based on system preference with a manual toggle.
+- Per-question streaming AI tutor powered by AI SDK and OpenRouter; chat history stays in browser memory and is never written to SQLite.
 - Autosave/resume, per-question points, flags, exact or partial scoring, and an optional protected `/manage` editor.
 - CLI validation plus a bundled Codex skill for authoring valid quizzes.
 - SEO metadata, Open Graph/Twitter images, `robots.txt`, and a generated sitemap.
@@ -41,6 +42,7 @@ MarkQ is an open-source **Markdown quiz generator** built with Next.js, shadcn/u
 - [shadcn/ui](https://ui.shadcn.com/), Base UI, and Tailwind CSS
 - [Bun](https://bun.sh/) as the only package manager and runtime
 - [SQLite](https://sqlite.org/) with [Drizzle ORM](https://orm.drizzle.team/)
+- [AI SDK](https://ai-sdk.dev/) with [OpenRouter](https://openrouter.ai/) for the optional question tutor
 - `gray-matter`, Unified, Remark, and React Markdown
 - Zod for content and API validation
 
@@ -52,7 +54,7 @@ Requirements: **Bun 1.3.14 or newer**.
 git clone https://github.com/huanngdev/markq.git
 cd markq
 bun install
-cp .env.example .env.local
+cp .env.example .env
 bun run db:migrate
 bun run dev
 ```
@@ -199,10 +201,11 @@ Shortcuts are disabled while focus is inside a text input or dialog.
 
 ## Configuration
 
-Copy `.env.example` to `.env.local`:
+Copy `.env.example` to `.env`:
 
 ```dotenv
 DATABASE_URL=./data/markq.db
+OPENROUTER_API_KEY=replace-with-your-openrouter-key
 NEXT_PUBLIC_SITE_URL=https://quiz.example.com
 MARKQ_ADMIN_TOKEN=replace-with-at-least-32-random-characters
 ```
@@ -210,10 +213,13 @@ MARKQ_ADMIN_TOKEN=replace-with-at-least-32-random-characters
 | Variable | Required | Description |
 | --- | --- | --- |
 | `DATABASE_URL` | No | SQLite path. Defaults to `./data/markq.db`. |
+| `OPENROUTER_API_KEY` | AI tutor | Server-only OpenRouter key used by the per-question tutor. The default model is `google/gemini-2.5-flash-lite`. |
 | `NEXT_PUBLIC_SITE_URL` | Production SEO | Public origin used for canonical URLs, Open Graph metadata, and the sitemap. |
 | `MARKQ_ADMIN_TOKEN` | No | Enables `/manage` and its API when set to at least 32 characters. Keep it secret. |
 
 When deployed on Vercel, MarkQ also reads `VERCEL_PROJECT_PRODUCTION_URL` automatically if `NEXT_PUBLIC_SITE_URL` is not set.
+
+The tutor resolves the current question from the signed guest attempt on the server. In-progress chats never receive the official answer or explanation; submitted review chats do. Transcripts are kept separately per question in React state for the current page session only, so changing or refreshing the page never persists chat data.
 
 ## SQLite and deployment
 

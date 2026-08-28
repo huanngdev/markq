@@ -191,8 +191,8 @@ export function QuizWorkspaceView({ quizTitle, viewModel, commands }: QuizWorksp
           </Card>
 
           <Card className="h-full min-h-0 gap-0 py-0">
-            <CardContent className="flex h-full min-h-0 flex-col overflow-y-auto p-4 sm:p-5">
-              <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2 text-sm">
+            <CardContent className="flex h-full min-h-0 flex-col overflow-hidden p-0">
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 p-4 pb-3 text-sm sm:px-5">
                 <div className="flex items-center gap-2">
                   <span className="font-medium tabular-nums">Question {viewModel.currentIndex + 1} of {attempt.answers.length}</span>
                   <Badge variant="outline">{currentAnswer.points} pt{currentAnswer.points === 1 ? "" : "s"}</Badge>
@@ -216,54 +216,58 @@ export function QuizWorkspaceView({ quizTitle, viewModel, commands }: QuizWorksp
                 </div>
               </div>
 
-              {viewModel.error ? <p role="alert" className="mb-3 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{viewModel.error}</p> : null}
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <div className="min-w-0 p-4 pt-0 sm:px-5 xl:overflow-y-auto">
+                  {viewModel.error ? <p role="alert" className="mb-3 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{viewModel.error}</p> : null}
 
-              <section className="shrink-0" aria-labelledby="question-heading">
-                <h2 id="question-heading" className="sr-only">Question {viewModel.currentIndex + 1}</h2>
-                <Markdown content={currentAnswer.prompt} className="w-full text-base font-medium sm:text-lg" />
-                {currentAnswer.selectionMode === "multiple" ? (
-                  <p className="mt-1 text-xs text-muted-foreground">Select all correct answers.</p>
-                ) : null}
-              </section>
+                  <section className="shrink-0" aria-labelledby="question-heading">
+                    <h2 id="question-heading" className="sr-only">Question {viewModel.currentIndex + 1}</h2>
+                    <Markdown content={currentAnswer.prompt} className="w-full text-base font-medium sm:text-lg" />
+                    {currentAnswer.selectionMode === "multiple" ? (
+                      <p className="mt-1 text-xs text-muted-foreground">Select all correct answers.</p>
+                    ) : null}
+                  </section>
 
-              {currentAnswer.selectionMode === "single" ? (
-                <RadioGroup
-                  value={currentAnswer.selectedOptions[0] ?? ""}
-                  onValueChange={(value) => commands.selectOption(String(value))}
-                  aria-label="Answer options"
-                  className="mt-3 shrink-0 grid-cols-1 gap-2 sm:grid-cols-2"
-                >
-                  {currentAnswer.options.map((option) => {
-                    const isSelected = currentAnswer.selectedOptions.includes(option.id);
-                    return (
-                      <Label key={option.id} htmlFor={`${currentAnswer.questionId}-${option.id}`} className={cn(
-                        "flex min-h-16 cursor-pointer items-center gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-accent",
-                        isSelected && "border-primary bg-accent",
-                      )}>
-                        <span className={cn("grid size-8 shrink-0 place-items-center rounded-md bg-muted text-sm font-semibold", isSelected && "bg-primary text-primary-foreground")}>{option.id}</span>
-                        <Markdown content={option.content} className="min-w-0 flex-1" />
-                        <RadioGroupItem id={`${currentAnswer.questionId}-${option.id}`} value={option.id} aria-label={option.content} />
-                      </Label>
-                    );
-                  })}
-                </RadioGroup>
-              ) : (
-                <div className="mt-3 grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2" aria-label="Answer options">
-                  {currentAnswer.options.map((option) => {
-                    const isSelected = currentAnswer.selectedOptions.includes(option.id);
-                    return (
-                      <Label key={option.id} htmlFor={`${currentAnswer.questionId}-${option.id}`} className={cn(
-                        "flex min-h-16 cursor-pointer items-center gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-accent",
-                        isSelected && "border-primary bg-accent",
-                      )}>
-                        <span className={cn("grid size-8 shrink-0 place-items-center rounded-md bg-muted text-sm font-semibold", isSelected && "bg-primary text-primary-foreground")}>{option.id}</span>
-                        <Markdown content={option.content} className="min-w-0 flex-1" />
-                        <Checkbox id={`${currentAnswer.questionId}-${option.id}`} checked={isSelected} onCheckedChange={() => commands.selectOption(option.id)} aria-label={option.content} />
-                      </Label>
-                    );
-                  })}
+                  {currentAnswer.selectionMode === "single" ? (
+                    <RadioGroup
+                      value={currentAnswer.selectedOptions[0] ?? ""}
+                      onValueChange={(value) => commands.selectOption(String(value))}
+                      aria-label="Answer options"
+                      className="mt-3 shrink-0 grid-cols-1 gap-2 sm:grid-cols-2"
+                    >
+                      {currentAnswer.options.map((option) => {
+                        const isSelected = currentAnswer.selectedOptions.includes(option.id);
+                        return (
+                          <Label key={option.id} htmlFor={`${currentAnswer.questionId}-${option.id}`} className={cn(
+                            "flex min-h-16 cursor-pointer items-center gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-accent",
+                            isSelected && "border-primary bg-accent",
+                          )}>
+                            <span className={cn("grid size-8 shrink-0 place-items-center rounded-md bg-muted text-sm font-semibold", isSelected && "bg-primary text-primary-foreground")}>{option.id}</span>
+                            <Markdown content={option.content} className="min-w-0 flex-1" />
+                            <RadioGroupItem id={`${currentAnswer.questionId}-${option.id}`} value={option.id} aria-label={option.content} />
+                          </Label>
+                        );
+                      })}
+                    </RadioGroup>
+                  ) : (
+                    <div className="mt-3 grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2" aria-label="Answer options">
+                      {currentAnswer.options.map((option) => {
+                        const isSelected = currentAnswer.selectedOptions.includes(option.id);
+                        return (
+                          <Label key={option.id} htmlFor={`${currentAnswer.questionId}-${option.id}`} className={cn(
+                            "flex min-h-16 cursor-pointer items-center gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-accent",
+                            isSelected && "border-primary bg-accent",
+                          )}>
+                            <span className={cn("grid size-8 shrink-0 place-items-center rounded-md bg-muted text-sm font-semibold", isSelected && "bg-primary text-primary-foreground")}>{option.id}</span>
+                            <Markdown content={option.content} className="min-w-0 flex-1" />
+                            <Checkbox id={`${currentAnswer.questionId}-${option.id}`} checked={isSelected} onCheckedChange={() => commands.selectOption(option.id)} aria-label={option.content} />
+                          </Label>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </div>

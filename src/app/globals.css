@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "katex/dist/katex.min.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -169,6 +170,22 @@
   margin-top: 0.75rem;
 }
 
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.markdown h1 { font-size: 1.5rem; }
+.markdown h2 { font-size: 1.25rem; }
+.markdown h3 { font-size: 1.125rem; }
+
+.markdown strong {
+  font-weight: 600;
+}
+
 .markdown ul,
 .markdown ol {
   padding-left: 1.4rem;
@@ -176,6 +193,20 @@
 
 .markdown ul { list-style: disc; }
 .markdown ol { list-style: decimal; }
+
+.markdown li + li {
+  margin-top: 0.35rem;
+}
+
+.markdown li > p + p {
+  margin-top: 0.5rem;
+}
+
+.markdown blockquote {
+  border-left: 0.2rem solid var(--border);
+  padding-left: 1rem;
+  color: var(--muted-foreground);
+}
 
 .markdown a {
   color: var(--foreground);
@@ -205,6 +236,37 @@
 .markdown pre code {
   background: transparent;
   padding: 0;
+}
+
+.markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+.markdown th,
+.markdown td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown th {
+  background: var(--muted);
+  font-weight: 600;
+}
+
+.markdown .katex {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+.markdown .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0;
 }
 
 .markdown img {
